@@ -1,4 +1,4 @@
-;; -*- mode: emacs-lisp; lexical-binding: t -*-
+                                        ; -*- mode: emacs-lisp; lexical-binding: t -*-
 ;; This file is loaded by Spacemacs at startup.
 ;; It must be stored in your home directory.
 
@@ -38,22 +38,110 @@ This function should only modify configuration layer settings."
      ;; Uncomment some layer names and press `SPC f e R' (Vim style) or
      ;; `M-m f e R' (Emacs style) to install them.
      ;; ----------------------------------------------------------------
-     ;; auto-completion
-     ;; better-defaults
+     auto-completion
+     better-defaults
      emacs-lisp
-     ;; git
      helm
-     ;; lsp
-     ;; markdown
+     (lsp :variables lsp-rust-server 'rust-analyzer)
+     markdown
      multiple-cursors
-     ;; org
-     ;; (shell :variables
-     ;;        shell-default-height 30
-     ;;        shell-default-position 'bottom)
-     ;; spell-checking
-     ;; syntax-checking
-     ;; version-control
-     treemacs)
+
+     (shell :variables
+            shell-default-shell 'ansi-term
+            shell-default-term-shell "/bin/zsh")
+     version-control
+     treemacs
+
+     (ivy :variables ivy-enable-advanced-buffer-information nil)
+     better-defaults
+     ranger
+     (lsp :variables lsp-rust-server 'rust-analyzer)
+     colors
+     prodigy
+     epub
+     (rust :variables rust-backend 'racer)
+     search-engine
+     graphviz
+     (haskell :variables haskell-enable-hindent t
+              haskell-completion-backend 'intero)
+     (syntax-checking :variables syntax-checking-enable-by-default nil
+                      syntax-checking-enable-tooltips nil)
+     (spell-checking :variables spell-checking-enable-by-default nil)
+     (spacemacs-layouts :variables layouts-enable-autosave nil
+                        layouts-autosave-delay 300)
+     (git :variables
+          git-magit-status-fullscreen t
+          magit-push-always-verify nil
+          magit-save-repository-buffers 'dontask
+          magit-revert-buffers 'silent
+          magit-refs-show-commit-count 'all
+          magit-revision-show-gravatars nil)
+     (ibuffer :variables ibuffer-group-buffers-by 'projects)
+     (auto-completion :variables auto-completion-enable-sort-by-usage t
+                      auto-completion-enable-snippets-in-popup t
+                      auto-completion-tab-key-behavior 'cycle
+                      :disabled-for org markdown)
+     (osx :variables osx-dictionary-dictionary-choice "Simplified Chinese - English"
+          osx-command-as 'super)
+     restclient
+     docker
+     latex
+     deft
+     (org :variables
+          org-want-todo-bindings t
+          org-enable-hugo-support t
+          org-enable-valign t
+          org-enable-org-journal-support t
+          org-enable-roam-server t
+          org-enable-roam-protocol t
+          org-enable-roam-support t
+          Org-roam-v2-ack t
+          company-org-roam t
+          org-enable-babel-support t
+          org-directory (expand-file-name "~/org-notes")
+          org-default-notes-file (concat org-directory "/inbox.org")
+          org-roam-directory (concat org-directory "/org-roam")
+          org-roam-db-location (concat org-roam-directory "/db/org-roam.db")
+          )
+     gpu
+     yaml
+     react
+     (python :variables
+             python-test-runner '(nose pytest)
+             python-backend 'lsp
+             python-lsp-server 'mspyls
+             python-lsp-git-root "~/Github/python-language-server")
+     (ruby :variables ruby-version-manager 'chruby)
+     ruby-on-rails
+     lua
+     html
+     (javascript :variables javascript-backend 'lsp)
+     (typescript :variables
+                 typescript-fmt-on-save nil
+                 typescript-fmt-tool 'typescript-formatter
+                 typescript-backend 'lsp)
+     (clojure :variables clojure-enable-fancify-symbols t)
+     racket
+     (c-c++ :variables
+            c-c++-default-mode-for-headers 'c++-mode
+            c-c++-backend 'lsp-ccls
+            c-c++-lsp-executable (file-truename "/usr/local/bin/ccls"))
+     (chinese :variables chinese-enable-youdao-dict t)
+     pdf
+     better-defaults
+     ;; python 配置
+     (python :variables
+             python-backend 'lsp
+             python-formatter 'black
+             )
+     ;; java 配置
+     (java :variables java-backend 'lsp)
+     ;; golang layers 引入
+     (go :variables
+         go-backend 'lsp
+         go-tab-width 8
+         godoc-at-point-function 'godoc-gogetdoc)
+     )
 
 
    ;; List of additional packages that will be installed without being wrapped
@@ -257,7 +345,7 @@ It should only modify the values of Spacemacs settings."
    ;; a non-negative integer (pixel size), or a floating-point (point size).
    ;; Point size is recommended, because it's device independent. (default 10.0)
    dotspacemacs-default-font '("Source Code Pro"
-                               :size 10.0
+                               :size 14.0
                                :weight normal
                                :width normal)
 
@@ -351,7 +439,7 @@ It should only modify the values of Spacemacs settings."
 
    ;; If non-nil the frame is fullscreen when Emacs starts up. (default nil)
    ;; (Emacs 24.4+ only)
-   dotspacemacs-fullscreen-at-startup nil
+   dotspacemacs-fullscreen-at-startup t
 
    ;; If non-nil `spacemacs/toggle-fullscreen' will not use native fullscreen.
    ;; Use to disable fullscreen animations in OSX. (default nil)
@@ -359,12 +447,12 @@ It should only modify the values of Spacemacs settings."
 
    ;; If non-nil the frame is maximized when Emacs starts up.
    ;; Takes effect only if `dotspacemacs-fullscreen-at-startup' is nil.
-   ;; (default nil) (Emacs 24.4+ only)
+   ;; (default t) (Emacs 24.4+ only)
    dotspacemacs-maximized-at-startup nil
 
    ;; If non-nil the frame is undecorated when Emacs starts up. Combine this
-   ;; variable with `dotspacemacs-maximized-at-startup' in OSX to obtain
-   ;; borderless fullscreen. (default nil)
+   ;; variable with `dotspacemacs-maximized-at-startup' to obtain fullscreen
+   ;; without external boxes. Also disables the internal border. (default nil)
    dotspacemacs-undecorated-at-startup nil
 
    ;; A value from the range (0..100), in increasing opacity, which describes
@@ -376,6 +464,11 @@ It should only modify the values of Spacemacs settings."
    ;; the transparency level of a frame when it's inactive or deselected.
    ;; Transparency can be toggled through `toggle-transparency'. (default 90)
    dotspacemacs-inactive-transparency 90
+
+   ;; A value from the range (0..100), in increasing opacity, which describes the
+   ;; transparency level of a frame background when it's active or selected. Transparency
+   ;; can be toggled through `toggle-background-transparency'. (default 90)
+   dotspacemacs-background-transparency 90
 
    ;; If non-nil show the titles of transient states. (default t)
    dotspacemacs-show-transient-state-title t
@@ -415,7 +508,7 @@ It should only modify the values of Spacemacs settings."
    ;;   :size-limit-kb 1000)
    ;; When used in a plist, `visual' takes precedence over `relative'.
    ;; (default nil)
-   dotspacemacs-line-numbers nil
+   dotspacemacs-line-numbers t
 
    ;; Code folding method. Possible values are `evil', `origami' and `vimish'.
    ;; (default 'evil)
@@ -538,7 +631,7 @@ default it calls `spacemacs/load-spacemacs-env' which loads the environment
 variables declared in `~/.spacemacs.env' or `~/.spacemacs.d/.spacemacs.env'.
 See the header of this file for more information."
   (spacemacs/load-spacemacs-env)
-)
+  )
 
 (defun dotspacemacs/user-init ()
   "Initialization for user code:
@@ -546,7 +639,8 @@ This function is called immediately after `dotspacemacs/init', before layer
 configuration.
 It is mostly for variables that should be set before packages are loaded.
 If you are unsure, try setting them in `dotspacemacs/user-config' first."
-)
+
+  )
 
 
 (defun dotspacemacs/user-load ()
@@ -554,17 +648,121 @@ If you are unsure, try setting them in `dotspacemacs/user-config' first."
 This function is called only while dumping Spacemacs configuration. You can
 `require' or `load' the libraries of your choice that will be included in the
 dump."
-)
+  (setq load-path (cons (file-truename "~/.spacemacs.d/") load-path))
+  (setq term-char-mode-point-at-process-mark nil)
+
+  ;; https://github.com/syl20bnr/spacemacs/issues/2705
+  ;; (setq tramp-mode nil)
+  (setq tramp-ssh-controlmaster-options
+        "-o ControlMaster=auto -o ControlPath='tramp.%%C' -o ControlPersist=no")
+
+  ;; ss proxy. But it will cause anacond-mode failed.
+  (setq socks-server '("Default server" "127.0.0.1" 1080 5))
+  (setq evil-shift-round nil)
+  (setq byte-compile-warnings '(not obsolete))
+  (setq warning-minimum-level :error)
+
+  ;; https://github.com/syl20bnr/spacemacs/issues/8901
+  (setq-default quelpa-build-tar-executable "/usr/local/bin/gtar")
 
 
+  )
 (defun dotspacemacs/user-config ()
   "Configuration for user code:
 This function is called at the very end of Spacemacs startup, after layer
 configuration.
 Put your configuration code here, except for variables that should be set
 before packages are loaded."
-)
 
+  ;; 加载配置文件（无需 .el 后缀）
+  ;;(require 'user-config)
+  (load-file "~/.spacemacs.d/user-config.el")
+  )
 
 ;; Do not write anything past this comment. This is where Emacs will
 ;; auto-generate custom variable definitions.
+(defun dotspacemacs/emacs-custom-settings ()
+  "Emacs custom settings.
+This is an auto-generated function, do not modify its content directly, use
+Emacs customize menu instead.
+This function is called at the very end of Spacemacs initialization."
+  (custom-set-variables
+   ;; custom-set-variables was added by Custom.
+   ;; If you edit it by hand, you could mess it up, so be careful.
+   ;; Your init file should contain only one such instance.
+   ;; If there is more than one, they won't work right.
+   '(package-selected-packages
+     '(ac-ispell ace-link ace-pinyin aggressive-indent attrap auto-compile
+                 auto-dictionary auto-highlight-symbol auto-yasnippet blacken
+                 browse-at-remote bundler cargo ccls centered-cursor-mode
+                 chinese-conv chruby cider cider-eval-sexp-fu clean-aindent-mode
+                 clojure-snippets cmm-mode code-cells color-identifiers-mode
+                 column-enforce-mode company-anaconda company-auctex
+                 company-c-headers company-cabal company-go company-lua
+                 company-math company-reftex company-restclient company-rtags
+                 company-statistics company-web company-ycmd counsel-css
+                 counsel-projectile cpp-auto-include cuda-mode cython-mode dante
+                 dap-mode deft devdocs diminish dired-quick-sort disaster docker
+                 docker-tramp dockerfile-mode dotenv-mode drag-stuff dumb-jump
+                 editorconfig elisp-def elisp-slime-nav emmet-mode emr engine-mode
+                 esh-help eshell-prompt-extras eshell-z evil-anzu evil-args
+                 evil-cleverparens evil-collection evil-easymotion evil-escape
+                 evil-evilified-state evil-exchange evil-goggles evil-iedit-state
+                 evil-indent-plus evil-lion evil-lisp-state evil-matchit evil-mc
+                 evil-nerd-commenter evil-numbers evil-org evil-surround evil-tex
+                 evil-textobj-line evil-tutor evil-unimpaired
+                 evil-visual-mark-mode evil-visualstar expand-region eyebrowse
+                 fancy-battery feature-mode find-by-pinyin-dired flx-ido
+                 flycheck-elsa flycheck-haskell flycheck-package flycheck-pos-tip
+                 flycheck-rtags flycheck-rust flycheck-ycmd flyspell-correct-ivy
+                 font-lock+ fuzzy gendoxy gh-md git-gutter-fringe git-link
+                 git-messenger git-modes git-timemachine gitignore-templates
+                 glsl-mode gnuplot go-eldoc go-fill-struct go-gen-test go-guru
+                 go-impl go-rename go-tag godoctor golden-ratio google-c-style
+                 google-translate graphviz-dot-mode haskell-snippets helm-make
+                 help-fns+ hide-comnt highlight-indentation highlight-numbers
+                 highlight-parentheses hindent hl-todo hlint-refactor holy-mode
+                 hungry-delete hybrid-mode ibuffer-projectile impatient-mode
+                 importmagic indent-guide info+ inspector ivy-avy ivy-hydra
+                 ivy-purpose ivy-rtags ivy-xref ivy-yasnippet js-doc js2-refactor
+                 json-mode json-navigator json-reformat launchctl link-hint
+                 live-py-mode livid-mode lorem-ipsum lsp-haskell lsp-ivy lsp-latex
+                 lsp-origami lsp-pyright lsp-python-ms lsp-ui macrostep
+                 markdown-toc md-readme minitest mmm-mode multi-line multi-term
+                 multi-vterm mwim nameless nodejs-repl nose nov npm-mode ob-go
+                 ob-http ob-restclient open-junk-file opencl-mode org-cliplink
+                 org-contrib org-download org-journal org-mime org-pomodoro
+                 org-present org-projectile org-rich-yank org-roam org-roam-server
+                 org-superstar orgit-forge osx-clipboard osx-dictionary osx-trash
+                 overseer ox-hugo pangu-spacing paradox password-generator
+                 pdf-view-restore pip-requirements pipenv pippel poetry popwin
+                 prettier-js prodigy projectile-rails pt pug-mode py-isort pydoc
+                 pyenv-mode pyim pyim-basedict pylookup pytest quickrun racer
+                 racket-mode rainbow-delimiters rainbow-identifiers rainbow-mode
+                 ranger rbenv restart-emacs reveal-in-osx-finder rjsx-mode robe
+                 ron-mode rspec-mode rubocop rubocopfmt ruby-hash-syntax
+                 ruby-refactor ruby-test-mode ruby-tools rvm sass-mode scss-mode
+                 seeing-is-believing shell-pop slim-mode smeargle smex space-doc
+                 spaceline-all-the-icons spacemacs-purpose-popwin
+                 spacemacs-whitespace-cleanup sphinx-doc string-edit-at-point
+                 string-inflection symbol-overlay symon tagedit term-cursor
+                 terminal-here tide toc-org toml-mode treemacs-evil
+                 treemacs-icons-dired treemacs-magit treemacs-persp
+                 treemacs-projectile undo-tree unfill use-package uuidgen valign
+                 vi-tilde-fringe vim-powerline volatile-highlights web-beautify
+                 web-mode wgrep which-key winum writeroom-mode ws-butler
+                 xterm-color yaml-mode yapfify yasnippet-snippets
+                 youdao-dictionary))
+   '(warning-suppress-log-types
+     '((org-roam) (use-package) (use-package) (use-package) (use-package)
+       (use-package) (use-package) (use-package) (use-package)))
+   '(warning-suppress-types
+     '((spacemacs) (spacemacs) (org-roam) (use-package) (use-package) (use-package)
+       (use-package) (use-package) (use-package) (use-package) (use-package))))
+  (custom-set-faces
+   ;; custom-set-faces was added by Custom.
+   ;; If you edit it by hand, you could mess it up, so be careful.
+   ;; Your init file should contain only one such instance.
+   ;; If there is more than one, they won't work right.
+   '(highlight-parentheses-highlight ((nil (:weight ultra-bold))) t))
+  )
