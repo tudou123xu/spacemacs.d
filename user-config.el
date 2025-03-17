@@ -4,7 +4,7 @@
   ;; 代码块执行免确认
   (setq org-confirm-babel-evaluate nil)
 
-  ;; 多语言支持配置
+  ;; 多语言支持配置（参考网页1/2的org-agenda配置思想）
   (org-babel-do-load-languages
    'org-babel-load-languages
    '((python . t)
@@ -14,21 +14,28 @@
      (shell . t)
      (js    . t)))
 
-  ;; 智能 Python 解释器选择
+  ;; 智能 Python 解释器选择（类似网页3的路径检测逻辑）
   (setq org-babel-python-command
-        (or (executable-find "python3")  ;; 自动检测系统路径
-            "python"))  ;; 保底方案
-  ;; 代码块头参数模板
+        (or (executable-find "python3")
+            "python"))
+
+  ;; 代码块头参数模板（继承网页1的GTD任务属性设置思路）
   (setq org-babel-default-header-args:python
         '((:results . "output")
           (:session . "none")
           (:exports . "code")))
 
-  ;; 异步执行支持
+  ;; 异步执行支持（参考网页4的Spacemacs layers设计）
   (setq org-babel-async-allow-in-python t)
-  ;; PlantUML 路径动态配置
+
+  ;; PlantUML 路径动态配置（类似网页3的路径自定义方法）
   (setq org-plantuml-jar-path
-        (expand-file-name "~/.emacs.d/lib/plantuml.jar")))
+        (expand-file-name "~/.emacs.d/lib/plantuml.jar"))
+
+  ;; LSP模式联动配置（与网页5的Spacemacs layer设计兼容）
+  (with-eval-after-load 'lsp-mode
+    (setq aider-code-suggestions-prompt
+          "基于当前项目的以下架构文档进行代码补全:\n%s")))
 
 ;; ==================== python 语言支持优化 ====================
 (unless (package-installed-p 'ob-python)
@@ -112,3 +119,6 @@
 
 (setq exec-path (cons "/Users/xuzhifeng/.nvm/versions/node/v15.14.0/bin/" exec-path))
 (setenv "PATH" (concat "/Users/xuzhifeng/.nvm/versions/node/v15.14.0/bin:" (getenv "PATH")))
+(setq tramp-use-ssh-controlmaster nil    ;; 禁用 SSH 多路复用
+      tramp-ssh-controlmaster-options   ;; 超时设置
+      "-o ControlMaster=auto -o ControlPath=~/.ssh/ssh-%%r@%%h:%%p -o ControlPersist=60")

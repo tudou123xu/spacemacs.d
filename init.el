@@ -141,6 +141,15 @@ This function should only modify configuration layer settings."
          go-backend 'lsp
          go-tab-width 8
          godoc-at-point-function 'godoc-gogetdoc)
+     (tramp :variables
+            tramp-default-method "ssh"       ;; 默认使用 SSH 协议
+            tramp-verbose 3)                 ;; 调试日志级别
+     (aidermacs :variables
+                aidermacs-backend 'vterm       ;; 使用高性能终端
+                aidermacs-auto-commits nil     ;; 禁用自动 Git 提交
+                aidermacs-extra-args "--dark"  ;; 暗色主题支持
+                aidermacs-vterm-multiline-newline-key "C-j") ;; 多行输入快捷键
+
      )
 
 
@@ -748,7 +757,7 @@ This function is called at the very end of Spacemacs initialization."
                  string-inflection symbol-overlay symon tagedit term-cursor
                  terminal-here tide toc-org toml-mode treemacs-evil
                  treemacs-icons-dired treemacs-magit treemacs-persp
-                 treemacs-projectile undo-tree unfill use-package uuidgen valign
+                 treemacs-projectile undo-tree unfill use-packageuuidgen valign
                  vi-tilde-fringe vim-powerline volatile-highlights web-beautify
                  web-mode wgrep which-key winum writeroom-mode ws-butler
                  xterm-color yaml-mode yapfify yasnippet-snippets
