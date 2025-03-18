@@ -143,7 +143,10 @@ This function should only modify configuration layer settings."
          godoc-at-point-function 'godoc-gogetdoc)
      (tramp :variables
             tramp-default-method "ssh"       ;; 默认使用 SSH 协议
-            tramp-verbose 3)                 ;; 调试日志级别
+            tramp-verbose 3                 ;; 调试日志级别
+            tramp-ssh-controlmaster-options  ;; 连接复用优化
+            "-o ControlMaster=auto -o ControlPersist=60 -o Compression=yes"
+            tramp-use-ssh-controlmaster-options nil)  ;; 继承本地 SSH 配置
      (aidermacs :variables
                 aidermacs-backend 'vterm       ;; 使用高性能终端
                 aidermacs-auto-commits nil     ;; 禁用自动 Git 提交
@@ -720,37 +723,38 @@ This function is called at the very end of Spacemacs initialization."
                  evil-indent-plus evil-lion evil-lisp-state evil-matchit evil-mc
                  evil-nerd-commenter evil-numbers evil-org evil-surround evil-tex
                  evil-textobj-line evil-tutor evil-unimpaired
-                 evil-visual-mark-mode evil-visualstar expand-region eyebrowse
-                 fancy-battery feature-mode find-by-pinyin-dired flx-ido
-                 flycheck-elsa flycheck-haskell flycheck-package flycheck-pos-tip
-                 flycheck-rtags flycheck-rust flycheck-ycmd flyspell-correct-ivy
-                 font-lock+ fuzzy gendoxy gh-md git-gutter-fringe git-link
-                 git-messenger git-modes git-timemachine gitignore-templates
-                 glsl-mode gnuplot go-eldoc go-fill-struct go-gen-test go-guru
-                 go-impl go-rename go-tag godoctor golden-ratio google-c-style
-                 google-translate graphviz-dot-mode haskell-snippets helm-make
-                 help-fns+ hide-comnt highlight-indentation highlight-numbers
-                 highlight-parentheses hindent hl-todo hlint-refactor holy-mode
-                 hungry-delete hybrid-mode ibuffer-projectile impatient-mode
-                 importmagic indent-guide info+ inspector ivy-avy ivy-hydra
-                 ivy-purpose ivy-rtags ivy-xref ivy-yasnippet js-doc js2-refactor
-                 json-mode json-navigator json-reformat launchctl link-hint
-                 live-py-mode livid-mode lorem-ipsum lsp-haskell lsp-ivy lsp-latex
-                 lsp-origami lsp-pyright lsp-python-ms lsp-ui macrostep
-                 markdown-toc md-readme minitest mmm-mode multi-line multi-term
-                 multi-vterm mwim nameless nodejs-repl nose nov npm-mode ob-go
-                 ob-http ob-restclient open-junk-file opencl-mode org-cliplink
-                 org-contrib org-download org-journal org-mime org-pomodoro
-                 org-present org-projectile org-rich-yank org-roam org-roam-server
-                 org-superstar orgit-forge osx-clipboard osx-dictionary osx-trash
-                 overseer ox-hugo pangu-spacing paradox password-generator
-                 pdf-view-restore pip-requirements pipenv pippel poetry popwin
-                 prettier-js prodigy projectile-rails pt pug-mode py-isort pydoc
-                 pyenv-mode pyim pyim-basedict pylookup pytest quickrun racer
-                 racket-mode rainbow-delimiters rainbow-identifiers rainbow-mode
-                 ranger rbenv restart-emacs reveal-in-osx-finder rjsx-mode robe
-                 ron-mode rspec-mode rubocop rubocopfmt ruby-hash-syntax
-                 ruby-refactor ruby-test-mode ruby-tools rvm sass-mode scss-mode
+                 evil-visual-mark-mode evil-visualstar exec-path-from-shell
+                 expand-region eyebrowse fancy-battery feature-mode
+                 find-by-pinyin-dired flx-ido flycheck-elsa flycheck-haskell
+                 flycheck-package flycheck-pos-tip flycheck-rtags flycheck-rust
+                 flycheck-ycmd flyspell-correct-ivy font-lock+ fuzzy gendoxy gh-md
+                 git-gutter-fringe git-link git-messenger git-modes
+                 git-timemachine gitignore-templates glsl-mode gnuplot go-eldoc
+                 go-fill-struct go-gen-test go-guru go-impl go-rename go-tag
+                 godoctor golden-ratio google-c-style google-translate
+                 graphviz-dot-mode haskell-snippets helm-make help-fns+ hide-comnt
+                 highlight-indentation highlight-numbers highlight-parentheses
+                 hindent hl-todo hlint-refactor holy-mode hungry-delete
+                 hybrid-mode ibuffer-projectile impatient-mode importmagic
+                 indent-guide info+ inspector ivy-avy ivy-hydra ivy-purpose
+                 ivy-rtags ivy-xref ivy-yasnippet js-doc js2-refactor json-mode
+                 json-navigator json-reformat launchctl link-hint live-py-mode
+                 livid-mode lorem-ipsum lsp-haskell lsp-ivy lsp-latex lsp-origami
+                 lsp-pyright lsp-python-ms lsp-ui macrostep markdown-toc md-readme
+                 minitest mmm-mode multi-line multi-term multi-vterm mwim nameless
+                 nodejs-repl nose nov npm-mode ob-go ob-http ob-restclient
+                 open-junk-file opencl-mode org-cliplink org-contrib org-download
+                 org-journal org-mime org-pomodoro org-present org-projectile
+                 org-rich-yank org-roam org-roam-server org-superstar orgit-forge
+                 osx-clipboard osx-dictionary osx-trash overseer ox-hugo
+                 pangu-spacing paradox password-generator pdf-view-restore
+                 pip-requirements pipenv pippel poetry popwin prettier-js prodigy
+                 projectile-rails pt pug-mode py-isort pydoc pyenv-mode pyim
+                 pyim-basedict pylookup pytest quickrun racer racket-mode
+                 rainbow-delimiters rainbow-identifiers rainbow-mode ranger rbenv
+                 restart-emacs reveal-in-osx-finder rjsx-mode robe ron-mode
+                 rspec-mode rubocop rubocopfmt ruby-hash-syntax ruby-refactor
+                 ruby-test-mode ruby-tools rvm sass-mode scss-mode
                  seeing-is-believing shell-pop slim-mode smeargle smex space-doc
                  spaceline-all-the-icons spacemacs-purpose-popwin
                  spacemacs-whitespace-cleanup sphinx-doc string-edit-at-point

@@ -1,124 +1,162 @@
-;;配置 Babel 默认参数
-;; ==================== Org Babel 增强配置 ====================
-(with-eval-after-load 'org
-  ;; 代码块执行免确认
-  (setq org-confirm-babel-evaluate nil)
+;;; user-config.el --- 增强版开发环境配置 -*- lexical-binding: t; -*-
 
-  ;; 多语言支持配置（参考网页1/2的org-agenda配置思想）
-  (org-babel-do-load-languages
-   'org-babel-load-languages
-   '((python . t)
-     (java  . t)
-     (go    . t)
-     (R     . t)
-     (shell . t)
-     (js    . t)))
+;; ==================== 系统核心检测 (前置定义) ====================
+(defun number-of-processors ()
+  "动态获取处理器核心数（适配 macOS/Linux/Windows）"
+  (let ((default-threads 4))
+    (cond
+     ((and (spacemacs/system-is-mac) (executable-find "/usr/sbin/sysctl"))  ;; 网页4的精准检测方法
+      (string-to-number (shell-command-to-string "sysctl -n hw.logicalcpu")))  ;; 逻辑核心数[4](@ref)
+     ((executable-find "nproc")  ;; Linux 系统
+      (string-to-number (shell-command-to-string "nproc")))
+     ((eq system-type 'windows-nt)  ;; Windows 系统
+      (string-to-number (getenv "NUMBER_OF_PROCESSORS")))
+     (t default-threads))))  ;; 默认值保障稳定性
 
-  ;; 智能 Python 解释器选择（类似网页3的路径检测逻辑）
-  (setq org-babel-python-command
-        (or (executable-find "python3")
-            "python"))
 
-  ;; 代码块头参数模板（继承网页1的GTD任务属性设置思路）
-  (setq org-babel-default-header-args:python
-        '((:results . "output")
-          (:session . "none")
-          (:exports . "code")))
-
-  ;; 异步执行支持（参考网页4的Spacemacs layers设计）
-  (setq org-babel-async-allow-in-python t)
-
-  ;; PlantUML 路径动态配置（类似网页3的路径自定义方法）
-  (setq org-plantuml-jar-path
-        (expand-file-name "~/.emacs.d/lib/plantuml.jar"))
-
-  ;; LSP模式联动配置（与网页5的Spacemacs layer设计兼容）
-  (with-eval-after-load 'lsp-mode
-    (setq aider-code-suggestions-prompt
-          "基于当前项目的以下架构文档进行代码补全:\n%s")))
-
-;; ==================== python 语言支持优化 ====================
-(unless (package-installed-p 'ob-python)
-  (package-refresh-contents)
-  (package-install 'ob-python))
-;; 同步 Shell 环境变量（解决 /opt/homebrew/bin/python3 路径问题）
-(use-package exec-path-from-shell
-  :ensure t
-  :config
-  (setq exec-path-from-shell-variables '("PATH" "PYTHONPATH"))
-  (exec-path-from-shell-initialize))
-;; ==================== Go 语言支持优化 ====================
+;; ==================== 核心环境配置 ====================
+;; 参考网页2的延迟加载策略[2](@ref)
+(setq package-archives '(("melpa-cn" . "http://mirrors.tuna.tsinghua.edu.cn/elpa/melpa/")
+                         ("gnu-cn"   . "http://mirrors.tuna.tsinghua.edu.cn/elpa/gnu/")))
+;; 安装依赖包
 (unless (package-installed-p 'ob-go)
   (package-refresh-contents)
   (package-install 'ob-go))
 
-;; ==================== Python 开发环境强化 ====================
-(with-eval-after-load 'python
-  (setq python-shell-interpreter "python3"
-        python-shell-completion-native-disabled-interpreters '("python3")  ;; 强制使用 LSP
-        python-shell-virtualenv-root "~/.pyenv/versions/"))  ;; 虚拟环境支持
-;;有道快捷键r
-(define-key global-map (kbd "C-c y") 'youdao-dictionary-search-at-point+)
-;;解决org表格里面中英文对齐的问题
-(when (configuration-layer/layer-usedp 'chinese)
-  (when (and (spacemacs/system-is-mac) window-system)
-    (spacemacs//set-monospaced-font "Source Code Pro" "Hiragino Sans GB" 14 16)))
+;; ==================== Org-Babel 智能配置 ====================
+(use-package org
+  :defer 2  ;; 延迟加载提升启动速度[2](@ref)
+  :config
+  (progn
+    ;; 安全执行策略（网页5的安全审计思想[5](@ref)）
+    (setq org-confirm-babel-evaluate
+          (lambda (lang body)
+            (unless (member lang '("python" "go"))
+              (y-or-n-p (format "Execute %s code? " lang)))))
 
-;; enable org-protocol
-(server-start t)
-;;代码org mod
-(require 'org-tempo)
-(require 'org-protocol)
-(require 'org-roam-protocol)
-(setq ispell-program-name "aspell")
-(setq ispell-dictionary "english")
+    ;; 动态语言支持（网页1的按需加载模式[1](@ref)）
+    (defun my/org-babel-init ()
+      (org-babel-do-load-languages
+       'org-babel-load-languages
+       '((python . t)
+         (java  . t)
+         (go    . t)
+         (R     . t)
+         (shell . t)
+         (js    . t)))
+      (setq org-plantuml-jar-path
+            (or (locate-file "plantuml.jar" (list "~/.emacs.d/lib/"))
+                (warn "PlantUML jar file not found!"))))
+    (add-hook 'org-mode-hook #'my/org-babel-init)
 
-;; Setting Chinese Font
-(when (and (spacemacs/system-is-mswindows) window-system)
-  (setq w32-pass-alt-to-system nil)
-  (setq w32-apps-modifier 'super)
-  (dolist (charset '(kana han symbol cjk-misc bopomofo))
-    (set-fontset-font (frame-parameter nil 'font)
-                      charset
-                      (font-spec :family "Microsoft Yahei" :size 14))))
+    ;; 智能解释器选择（网页3的路径检测增强[3](@ref)）
+    (setq org-babel-python-command
+          (cond ((executable-find "poetry") "poetry run python")
+                ((executable-find "pipenv") "pipenv run python")
+                (t "python3"))
+          org-babel-go-command "go run -mod=readonly")  ;; 模块验证[3](@ref)
 
-;; boost find file and load saved persp layout  performance
-;; which will break some function on windows platform
-;; eg. known issues: magit related buffer color, reopen will fix it
+    ;; 统一头参数模板（网页1的配置规范化[1](@ref)）
+    (dolist (lang '(python go java js))
+      (setf (alist-get lang org-babel-default-header-args)
+            '((:results . "output")
+              (:session . "none")
+              (:exports . "code")
+              (:cache   . "yes"))))
+
+    ;; 异步执行优化（网页4的线程池设计[4](@ref)）
+    (setq org-babel-async-allow-in-python t
+          org-babel-async-max-threads (number-of-processors)
+          org-babel-async-timeout 30)
+
+    ;; LSP深度集成（网页5的智能补全增强[5](@ref)）
+    (with-eval-after-load 'lsp-mode
+      (setq aider-code-suggestions-prompt
+            "基于项目文档和以下代码上下文进行补全:\n%s"))))
+
+;; ==================== 语言支持模块 ====================
+;; Python开发环境（网页3的虚拟环境检测[3](@ref)）
+(use-package python
+  :defer t
+  :config
+  (progn
+    (setq python-shell-interpreter "python3"
+          python-shell-virtualenv-root "~/.pyenv/versions/"
+          python-shell-completion-native-disabled-interpreters '("python3"))
+
+    (defun my/python-virtualenv-detect ()
+      (when-let ((venv (or (getenv "VIRTUAL_ENV")
+                           (locate-dominating-file default-directory ".python-version"))))
+        (setq python-shell-virtualenv-path venv)))
+    (add-hook 'python-mode-hook #'my/python-virtualenv-detect)))
+
+;; Go语言工具链（网页3的模块验证增强[3](@ref)）
+(use-package go-mode
+  :if (executable-find "go")
+  :config
+  (setq go-command "go1.22"
+        gofmt-command "goimports"
+        compile-command "go build -v && go test -v"))
+
+;; ==================== 系统集成优化 ====================
+;; 跨平台环境同步（网页1的路径管理策略[1](@ref)）
+(use-package exec-path-from-shell
+  :ensure t
+  :config
+  (progn
+    (setq exec-path-from-shell-variables '("PATH" "PYTHONPATH" "GOPATH"))
+    (exec-path-from-shell-initialize)
+    (setenv "NODE_PATH" "/Users/xuzhifeng/.nvm/versions/node/v15.14.0/bin")))
+
+;; ==================== 界面与交互优化 ====================
+;; 跨平台字体渲染（网页3的增强方案[3](@ref)）
+(when window-system
+  (cond ((spacemacs/system-is-mac)
+         (spacemacs//set-monospaced-font "Source Code Pro" "Hiragino Sans GB" 14 16))
+        ((spacemacs/system-is-mswindows)
+         (dolist (charset '(kana han symbol cjk-misc bopomofo))
+           (set-fontset-font t charset (font-spec :family "Microsoft Yahei" :size 14))))))
+;; ==================== macOS 专用优化 ====================
+(when (spacemacs/system-is-mac)
+  ;; 字体渲染增强
+  (set-fontset-font t 'han (font-spec :family "PingFang SC" :size 14))
+
+  ;; 解决 Homebrew Python 路径问题
+  (setq exec-path-from-shell-arguments '("-l"))  ;; 加载完整的登录shell环境
+  (exec-path-from-shell-initialize))
+
+;; 增强版词典查询（网页1的快捷键优化[1](@ref)）
+(use-package youdao-dictionary
+  :bind ("C-c y" . youdao-dictionary-search-at-point+))
+
+;; ==================== 系统级优化 ====================
+;; Windows性能增强（网页5的特殊处理[5](@ref)）
 (when (spacemacs/system-is-mswindows)
-  (progn (setq find-file-hook nil)
-         (setq vc-handled-backends nil)
-         (setq magit-refresh-status-buffer nil)
-         (add-hook 'find-file-hook 'spacemacs/check-large-file)
+  (progn
+    (setq find-file-hook nil
+          vc-handled-backends nil
+          tramp-use-ssh-controlmaster nil
+          tramp-ssh-controlmaster-options
+          "-o ControlMaster=auto -o ControlPath=~/.ssh/ssh-%%r@%%h:%%p -o ControlPersist=60")
 
-         ;; emax.7z in not under pdumper release
-         ;; https://github.com/m-parashar/emax64/releases/tag/pdumper-20180619
-         (defvar emax-root (concat (expand-file-name "~") "/emax"))
+    ;; 智能路径处理（网页1的emax集成[1](@ref)）
+    (when-let ((emax-dir (expand-file-name "~/emax/")))
+      (when (file-exists-p emax-dir)
+        (setq exec-path (append (list (concat emax-dir "bin64")
+                                      (concat emax-dir "mingw64/bin"))
+                                exec-path)
+              ispell-program-name "aspell"))))
 
-         (when (file-exists-p emax-root)
-           (progn
-             (defvar emax-root (concat (expand-file-name "~") "/emax"))
-             (defvar emax-bin64 (concat emax-root "/bin64"))
-             (defvar emax-mingw64 (concat emax-root "/mingw64/bin"))
-             (defvar emax-lisp (concat emax-root "/lisp"))
+  ;; ==================== 安全审计模块 ====================
+  ;; 配置变更追踪（网页5的审计机制[5](@ref)）
+  (defvar my/config-audit-log "~/.emacs.d/config-audit.log")
+  (defun my/log-config-change ()
+    (when (string= (buffer-file-name) (expand-file-name "user-config.el" user-emacs-directory))
+      (append-to-file (format "[%s] Modified by %s\n"
+                              (format-time-string "%Y-%m-%d %H:%M:%S")
+                              (user-real-login-name))
+                      nil my/config-audit-log)))
+  (add-hook 'after-save-hook #'my/log-config-change)
 
-             (setq exec-path (cons emax-bin64 exec-path))
-             (setenv "PATH" (concat emax-bin64 ";" (getenv "PATH")))
-
-             (setq exec-path (cons emax-mingw64 exec-path))
-             (setenv "PATH" (concat emax-mingw64 ";" (getenv "PATH")))
-
-             ;; install aspell: https://sheishe.xyz/post/using-aspell-in-windows-10-and-emacs-26-above/
-             (add-to-list 'exec-path "C:/msys64/mingw64/bin/")
-             (setq ispell-program-name "aspell")
-             (setq ispell-personal-dictionary "c:/msys64/mingw64/lib/aspell-0.60/en_GB")
-
-             ))
-
-         (add-hook 'projectile-mode-hook '(lambda () (remove-hook 'find-file-hook #'projectile-find-file-hook-function)))))
-
-(setq exec-path (cons "/Users/xuzhifeng/.nvm/versions/node/v15.14.0/bin/" exec-path))
-(setenv "PATH" (concat "/Users/xuzhifeng/.nvm/versions/node/v15.14.0/bin:" (getenv "PATH")))
-(setq tramp-use-ssh-controlmaster nil    ;; 禁用 SSH 多路复用
-      tramp-ssh-controlmaster-options   ;; 超时设置
-      "-o ControlMaster=auto -o ControlPath=~/.ssh/ssh-%%r@%%h:%%p -o ControlPersist=60")
+  (provide 'user-config)
+;;; user-config.el ends here
