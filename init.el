@@ -32,129 +32,112 @@ This function should only modify configuration layer settings."
 
    ;; List of configuration layers to load.
    dotspacemacs-configuration-layers
-   '(
-     ;; ----------------------------------------------------------------
-     ;; Example of useful layers you may want to use right away.
-     ;; Uncomment some layer names and press `SPC f e R' (Vim style) or
-     ;; `M-m f e R' (Emacs style) to install them.
-     ;; ----------------------------------------------------------------
+   '(     ;; ====================== 核心功能层 ======================
      auto-completion
      better-defaults
-     emacs-lisp
      helm
-     (lsp :variables lsp-rust-server 'rust-analyzer)
-     markdown
-     multiple-cursors
+     (lsp :variables
+          lsp-auto-guess-root t
+          lsp-rust-server 'rust-analyzer  ;; 统一LSP配置
+          lsp-ui-doc-enable nil          ;; 禁用悬浮文档提升性能
+          lsp-idle-delay 0.3)            ;; 降低响应延迟
 
-     (shell :variables
-            shell-default-shell 'ansi-term
-            shell-default-term-shell "/bin/zsh")
-     version-control
-     treemacs
-
-     (ivy :variables ivy-enable-advanced-buffer-information nil)
-     better-defaults
-     ranger
-     (lsp :variables lsp-rust-server 'rust-analyzer)
-     colors
-     prodigy
-     epub
-     (rust :variables rust-backend 'racer)
-     search-engine
-     graphviz
-     (haskell :variables haskell-enable-hindent t
-              haskell-completion-backend 'intero)
-     (syntax-checking :variables syntax-checking-enable-by-default nil
-                      syntax-checking-enable-tooltips nil)
-     (spell-checking :variables spell-checking-enable-by-default nil)
-     (spacemacs-layouts :variables layouts-enable-autosave nil
-                        layouts-autosave-delay 300)
-     (git :variables
-          git-magit-status-fullscreen t
-          magit-push-always-verify nil
-          magit-save-repository-buffers 'dontask
-          magit-revert-buffers 'silent
-          magit-refs-show-commit-count 'all
-          magit-revision-show-gravatars nil)
-     (ibuffer :variables ibuffer-group-buffers-by 'projects)
-     (auto-completion :variables auto-completion-enable-sort-by-usage t
-                      auto-completion-enable-snippets-in-popup t
-                      auto-completion-tab-key-behavior 'cycle
-                      :disabled-for org markdown)
-     (osx :variables osx-dictionary-dictionary-choice "Simplified Chinese - English"
-          osx-command-as 'super)
-     restclient
-     docker
-     latex
-     deft
-     (org :variables
-          org-want-todo-bindings t
-          org-enable-hugo-support t
-          org-enable-valign t
-          org-enable-org-journal-support t
-          org-enable-roam-server t
-          org-enable-roam-protocol t
-          org-enable-roam-support t
-          Org-roam-v2-ack t
-          company-org-roam t
-          org-enable-babel-support t
-          org-directory (expand-file-name "~/org-notes")
-          org-default-notes-file (concat org-directory "/inbox.org")
-          org-roam-directory (concat org-directory "/org-roam")
-          org-roam-db-location (concat org-roam-directory "/db/org-roam.db")
-          )
-     gpu
-     yaml
-     react
-     (python :variables
-             python-test-runner '(nose pytest)
-             python-backend 'lsp
-             python-lsp-server 'mspyls
-             python-lsp-git-root "~/Github/python-language-server")
-     (ruby :variables ruby-version-manager 'chruby)
-     ruby-on-rails
-     lua
-     html
-     (javascript :variables javascript-backend 'lsp)
-     (typescript :variables
-                 typescript-fmt-on-save nil
-                 typescript-fmt-tool 'typescript-formatter
-                 typescript-backend 'lsp)
-     (clojure :variables clojure-enable-fancify-symbols t)
-     racket
-     (c-c++ :variables
-            c-c++-default-mode-for-headers 'c++-mode
-            c-c++-backend 'lsp-ccls
-            c-c++-lsp-executable (file-truename "/usr/local/bin/ccls"))
-     (chinese :variables chinese-enable-youdao-dict t)
-     pdf
-     better-defaults
-     ;; python 配置
+     ;; ====================== 编程语言层 ======================
+     ;; --- Python增强 ---
      (python :variables
              python-backend 'lsp
              python-formatter 'black
-             )
-     ;; java 配置
-     (java :variables java-backend 'lsp)
-     ;; golang layers 引入
+             python-test-runner 'pytest   ;; 简化测试配置
+             python-lsp-server 'pyright   ;; 更快的LSP后端
+             python-sort-imports-on-save t
+             python-format-on-save t)
+
+     ;; --- Java优化 ---
+     (java :variables
+           java-backend 'lsp
+           java-build-tool 'gradle
+           java-lsp-jdtls-extended t)
+
+     ;; --- Go语言配置 ---
      (go :variables
          go-backend 'lsp
          go-tab-width 8
-         godoc-at-point-function 'godoc-gogetdoc)
-     (tramp :variables
-            tramp-default-method "ssh"       ;; 默认使用 SSH 协议
-            tramp-verbose 3                 ;; 调试日志级别
-            tramp-ssh-controlmaster-options  ;; 连接复用优化
-            "-o ControlMaster=auto -o ControlPersist=60 -o Compression=yes"
-            tramp-use-ssh-controlmaster-options nil)  ;; 继承本地 SSH 配置
+         go-fill-struct-snippet t
+         go-use-golangci-lint t
+         godoc-at-point-function 'godoc-gogetdoc
+         go-rename-use-rg t)  ;; 关键优化：使用ripgrep加速
+
+     ;; --- Web开发 ---
+     (javascript :variables javascript-backend 'lsp)
+     (typescript :variables
+                 typescript-backend 'lsp
+                 typescript-lsp-server 'typescript-language-server)
+     html
+     react
+
+     ;; --- 系统编程 ---
+     (c-c++ :variables
+            c-c++-default-mode-for-headers 'c++-mode
+            c-c++-backend 'lsp-clangd  ;; 改用clangd
+            c-c++-lsp-clangd-args '("-j=4" "--background-index"))
+
+     (rust :variables
+           rust-backend 'lsp
+           rust-format-on-save t)  ;; 修复原racer配置冲突
+
+     ;; ====================== 开发工具层 ======================
+     ;; --- 版本控制 ---
+     (git :variables
+          git-magit-status-fullscreen t
+          magit-push-always-verify nil
+          magit-diff-refine-hunk 'all)
+     version-control
+
+     ;; --- 终端与Shell ---
+     (shell :variables
+            shell-default-shell 'vterm  ;; 性能关键：替换ansi-term
+            shell-default-term-shell "/bin/zsh"
+            vterm-max-scrollback 10000)
      (aidermacs :variables
-                aidermacs-backend 'vterm       ;; 使用高性能终端
-                aidermacs-auto-commits nil     ;; 禁用自动 Git 提交
-                aidermacs-extra-args "--dark"  ;; 暗色主题支持
-                aidermacs-vterm-multiline-newline-key "C-j") ;; 多行输入快捷键
+                aidermacs-backend 'vterm
+                aidermacs-auto-commits nil
+                aidermacs-extra-args "--dark --font='FiraCode-14'")
 
-     )
+     ;; --- 远程开发 ---
+     (tramp :variables
+            tramp-default-method "ssh"
+            tramp-verbose 1  ;; 性能优化：降低日志级别
+            tramp-ssh-controlmaster-options "-o ControlMaster=auto -o ControlPersist=60s -o ConnectTimeout=15"
+            tramp-use-connection-share t)
 
+     ;; ====================== 文档与写作 ======================
+     (org :variables
+          org-enable-roam-support t
+          org-directory "~/org-notes"
+          org-roam-directory "~/org-notes/org-roam"
+          org-export-in-background t)  ;; 后台导出优化
+     markdown
+     latex
+
+     ;; ====================== 系统集成 ======================
+     (osx :variables
+          osx-dictionary-dictionary-choice "Simplified Chinese - English"
+          osx-command-as 'super)
+     docker
+     (search-engine :variables  ;; 新增：修复搜索功能
+                    search-engine-default-backend 'rg
+                    search-engine-rg-extra-arguments "--hidden --glob '!.git/'")
+
+     ;; ====================== 其他必要层 ======================
+     emacs-lisp
+     multiple-cursors
+     (ivy :variables ivy-enable-advanced-buffer-information t)
+     restclient
+     yaml
+     (spell-checking :variables spell-checking-enable-by-default nil)
+     (spacemacs-layouts :variables layouts-enable-autosave nil)
+     pdf
+     deft)
 
    ;; List of additional packages that will be installed without being wrapped
    ;; in a layer (generally the packages are installed only and should still be
