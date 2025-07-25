@@ -98,10 +98,7 @@ This function should only modify configuration layer settings."
             shell-default-shell 'vterm  ;; 性能关键：替换ansi-term
             shell-default-term-shell "/bin/zsh"
             vterm-max-scrollback 10000)
-     (aidermacs :variables
-                aidermacs-backend 'vterm
-                aidermacs-auto-commits nil
-                aidermacs-extra-args "--dark --font='FiraCode-14'")
+     aider
 
      ;; --- 远程开发 ---
      (tramp :variables
@@ -207,18 +204,11 @@ It should only modify the values of Spacemacs settings."
    ;; (default 5)
    dotspacemacs-elpa-timeout 5
 
-   ;; Set `gc-cons-threshold' and `gc-cons-percentage' when startup finishes.
-   ;; This is an advanced option and should not be changed unless you suspect
-   ;; performance issues due to garbage collection operations.
-   ;; (default '(100000000 0.1))
-   dotspacemacs-gc-cons '(100000000 0.1)
+   ;; GC 优化：启动时使用更大的阈值，然后在模块加载中恢复
+   dotspacemacs-gc-cons '(134217728 0.1)  ; 128MB
 
-   ;; Set `read-process-output-max' when startup finishes.
-   ;; This defines how much data is read from a foreign process.
-   ;; Setting this >= 1 MB should increase performance for lsp servers
-   ;; in emacs 27.
-   ;; (default (* 1024 1024))
-   dotspacemacs-read-process-output-max (* 1024 1024)
+   ;; LSP 性能优化：增加进程输出缓冲区
+   dotspacemacs-read-process-output-max (* 3 1024 1024)  ; 3MB
 
    ;; If non-nil then Spacelpa repository is the primary source to install
    ;; a locked version of packages. If nil then Spacemacs will install the
@@ -336,13 +326,14 @@ It should only modify the values of Spacemacs settings."
    ;; (default t)
    dotspacemacs-colorize-cursor-according-to-state t
 
-   ;; Default font or prioritized list of fonts. The `:size' can be specified as
-   ;; a non-negative integer (pixel size), or a floating-point (point size).
-   ;; Point size is recommended, because it's device independent. (default 10.0)
-   dotspacemacs-default-font '("Source Code Pro"
-                               :size 14.0
-                               :weight normal
-                               :width normal)
+   ;; 智能字体配置：优先使用系统最佳字体
+   dotspacemacs-default-font (cond
+                              ((spacemacs/system-is-mac)
+                               '("SF Mono" :size 14.0 :weight normal :width normal))
+                              ((spacemacs/system-is-mswindows)
+                               '("Consolas" :size 14.0 :weight normal :width normal))
+                              (t
+                               '("Source Code Pro" :size 14.0 :weight normal :width normal)))
 
    ;; The leader key (default "SPC")
    dotspacemacs-leader-key "SPC"
@@ -643,22 +634,26 @@ If you are unsure, try setting them in `dotspacemacs/user-config' first."
 This function is called only while dumping Spacemacs configuration. You can
 `require' or `load' the libraries of your choice that will be included in the
 dump."
-  (setq load-path (cons (file-truename "~/.spacemacs.d/") load-path))
-  (setq term-char-mode-point-at-process-mark nil)
-
-  ;; https://github.com/syl20bnr/spacemacs/issues/2705
-  ;; (setq tramp-mode nil)
-  (setq tramp-ssh-controlmaster-options
-        "-o ControlMaster=auto -o ControlPath='tramp.%%C' -o ControlPersist=no")
-
-  ;; ss proxy. But it will cause anacond-mode failed.
-  (setq socks-server '("Default server" "127.0.0.1" 1080 5))
-  (setq evil-shift-round nil)
-  (setq byte-compile-warnings '(not obsolete))
-  (setq warning-minimum-level :error)
-
-  ;; https://github.com/syl20bnr/spacemacs/issues/8901
-  (setq-default quelpa-build-tar-executable "/usr/local/bin/gtar")
+  ;; ==================== 核心路径配置 ====================
+  (add-to-list 'load-path (file-truename "~/.spacemacs.d/"))
+  
+  ;; ==================== 性能优化配置 ====================
+  (setq byte-compile-warnings '(not obsolete)
+        warning-minimum-level :error
+        evil-shift-round nil)
+  
+  ;; ==================== 网络配置 ====================
+  ;; SOCKS 代理配置 (根据需要启用)
+  ;; (setq socks-server '("Default server" "127.0.0.1" 1080 5))
+  
+  ;; ==================== 工具配置 ====================
+  ;; GNU tar 配置 (macOS)
+  (when (spacemacs/system-is-mac)
+    (setq-default quelpa-build-tar-executable 
+                  (or (executable-find "gtar")
+                      (executable-find "/usr/local/bin/gtar")
+                      (executable-find "/opt/homebrew/bin/gtar")
+                      "tar")))
 
 
   )
