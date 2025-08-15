@@ -1,7 +1,7 @@
 ;;; windows-specific.el --- Windows 专属配置 -*- lexical-binding: t; -*-
 
 ;; ==================== Windows 系统集成 ====================
-(when (spacemacs/system-is-mswindows)
+(when (my/system-is-windows)
   
   ;; ==================== 文件系统优化 ====================
   ;; Windows 路径处理

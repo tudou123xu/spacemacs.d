@@ -11,7 +11,7 @@
             (not (member lang '("python" "go" "shell" "elisp")))))
 
     ;; 异步执行优化
-    (setq org-babel-async-max-threads (max 4 (my/number-of-processors))
+    (setq org-babel-async-max-threads (max 4 (or (ignore-errors (my/number-of-processors)) 4))
           org-babel-async-timeout 30)
 
     ;; 智能解释器选择
@@ -42,12 +42,13 @@
   (add-hook 'python-mode-hook #'my/python-virtualenv-detect))
 
 ;; ==================== Go 语言优化 ====================
-(use-package go-mode
-  :if (executable-find "go")
-  :config
-  (setq gofmt-command (if (executable-find "goimports") "goimports" "gofmt")
-        compile-command "go build -v && go test -v"
-        go-test-args "-v"))
+(when (and (executable-find "go") (package-installed-p 'go-mode))
+  (use-package go-mode
+    :defer t
+    :config
+    (setq gofmt-command (if (executable-find "goimports") "goimports" "gofmt")
+          compile-command "go build -v && go test -v"
+          go-test-args "-v")))
 
 ;; ==================== LSP 统一配置 ====================
 (with-eval-after-load 'lsp-mode

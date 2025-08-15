@@ -21,11 +21,11 @@
   (when (display-graphic-p)
     (let* ((font-size 14)
            (default-font 
-             (cond ((spacemacs/system-is-mac) 
+             (cond ((my/system-is-mac) 
                     (if (member "SF Mono" (font-family-list))
                         (format "SF Mono-%d" font-size)
                       (format "Monaco-%d" font-size)))
-                   ((spacemacs/system-is-mswindows)
+                   ((my/system-is-windows)
                     (format "Consolas-%d" font-size))
                    (t (format "Source Code Pro-%d" font-size)))))
       
@@ -35,13 +35,13 @@
         (error (message "字体设置失败，使用默认字体")))
       
       ;; 中文字体配置
-      (when (spacemacs/system-is-mac)
+      (when (my/system-is-mac)
         (dolist (charset '(han cjk-misc))
           (condition-case nil
               (set-fontset-font t charset "PingFang SC")
             (error nil))))
       
-      (when (spacemacs/system-is-mswindows)
+      (when (my/system-is-windows)
         (dolist (charset '(han cjk-misc))
           (condition-case nil
               (set-fontset-font t charset "Microsoft YaHei UI")

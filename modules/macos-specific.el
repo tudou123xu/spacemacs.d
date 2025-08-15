@@ -1,7 +1,7 @@
 ;;; macos-specific.el --- macOS 专属配置 -*- lexical-binding: t; -*-
 
 ;; ==================== macOS 系统集成 ====================
-(when (spacemacs/system-is-mac)
+(when (my/system-is-mac)
   
   ;; 环境变量优化
   (setq exec-path-from-shell-arguments '("-l"))
@@ -59,7 +59,9 @@
     (global-set-key (kbd "C-\\") 'toggle-input-method))
   
   ;; ==================== 系统级快捷键 ====================
-  (global-set-key (kbd "s-f") #'spacemacs/helm-find-files)
+  ;; 使用条件检查避免函数未定义错误
+  (when (fboundp 'spacemacs/helm-find-files)
+    (global-set-key (kbd "s-f") #'spacemacs/helm-find-files))
   (global-set-key (kbd "s-r") #'macos/reveal-in-finder)
   (global-set-key (kbd "s-w") #'delete-window)
   (global-set-key (kbd "s-q") #'save-buffers-kill-terminal)

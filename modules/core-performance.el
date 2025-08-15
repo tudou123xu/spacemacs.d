@@ -1,16 +1,29 @@
 ;;; core-performance.el --- 核心性能优化模块 -*- lexical-binding: t; -*-
 
+;; ==================== 系统检测函数 ====================
+(defun my/system-is-mac ()
+  "检测是否为 macOS 系统"
+  (eq system-type 'darwin))
+
+(defun my/system-is-linux ()
+  "检测是否为 Linux 系统"
+  (eq system-type 'gnu/linux))
+
+(defun my/system-is-windows ()
+  "检测是否为 Windows 系统"
+  (eq system-type 'windows-nt))
+
 ;; ==================== 系统核心检测 ====================
 (defun my/number-of-processors ()
   "动态获取处理器核心数（跨平台兼容）"
   (let ((default-threads 4))
     (or (ignore-errors
           (cond
-           ((and (spacemacs/system-is-mac) (executable-find "/usr/sbin/sysctl"))
+           ((and (my/system-is-mac) (executable-find "/usr/sbin/sysctl"))
             (string-to-number (shell-command-to-string "sysctl -n hw.logicalcpu")))
            ((executable-find "nproc")
             (string-to-number (shell-command-to-string "nproc")))
-           ((eq system-type 'windows-nt)
+           ((my/system-is-windows)
             (string-to-number (or (getenv "NUMBER_OF_PROCESSORS") "4")))))
         default-threads)))
 

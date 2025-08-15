@@ -15,16 +15,17 @@
 ;; ==================== 核心模块加载 ====================
 (mapc #'my/load-config-module
       '("core-performance"     ; 性能优化
+        "error-handling"       ; 错误处理和容错
         "lang-support"         ; 编程语言支持
         "ui-enhancement"       ; 界面增强
         "system-integration"   ; 系统集成
         "security-audit"))     ; 安全审计
 
 ;; ==================== 平台专属配置 ====================
-(when (spacemacs/system-is-mac)
+(when (my/system-is-mac)
   (my/load-config-module "macos-specific"))
 
-(when (spacemacs/system-is-mswindows)
+(when (my/system-is-windows)
   (my/load-config-module "windows-specific"))
 
 ;; ==================== 数据库模块加载 ====================

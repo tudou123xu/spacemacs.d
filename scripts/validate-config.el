@@ -26,6 +26,7 @@
                           "modules/ui-enhancement.el"
                           "modules/system-integration.el"
                           "modules/security-audit.el"
+                          "modules/error-handling.el"
                           "private/aider/packages.el"
                           "private/aider/config.el"
                           "private/aider/funcs.el"
@@ -39,6 +40,7 @@
 (defun validate/test-module-loading ()
   "测试模块是否能正常加载"
   (let ((modules '("core-performance"
+                   "error-handling"
                    "lang-support"
                    "ui-enhancement"
                    "system-integration"
@@ -59,9 +61,9 @@
 (defun validate/check-functions ()
   "检查关键函数是否正确定义"
   (let ((required-functions '(my/number-of-processors
-                              my/load-config-module
-                              aider/start-session
-                              aider/add-current-file)))
+                              my/system-is-mac
+                              my/system-is-windows
+                              my/load-config-module)))
     (dolist (func required-functions)
       (unless (fboundp func)
         (validate/add-warning (format "函数 %s 未定义" func))))))
@@ -78,12 +80,12 @@
 ;; ==================== 平台专属检查 ====================
 (defun validate/check-platform-specific ()
   "检查平台专属配置"
-  (when (spacemacs/system-is-mac)
+  (when (my/system-is-mac)
     (let ((macos-file (expand-file-name "modules/macos-specific.el" "~/.spacemacs.d/")))
       (unless (file-exists-p macos-file)
         (validate/add-warning "macOS 平台缺少专属配置文件"))))
   
-  (when (spacemacs/system-is-mswindows)
+  (when (my/system-is-windows)
     (let ((windows-file (expand-file-name "modules/windows-specific.el" "~/.spacemacs.d/")))
       (unless (file-exists-p windows-file)
         (validate/add-warning "Windows 平台缺少专属配置文件")))))

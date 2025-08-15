@@ -3,7 +3,7 @@
 ;; ==================== 环境变量处理 ====================
 (use-package exec-path-from-shell
   :ensure t
-  :if (or (spacemacs/system-is-mac) (spacemacs/system-is-linux))
+  :if (or (my/system-is-mac) (my/system-is-linux))
   :config
   (progn
     (setq exec-path-from-shell-variables 
