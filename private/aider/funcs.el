@@ -89,5 +89,109 @@
     (aider/send-command "/quit")
     (message "Aider 会话已退出")))
 
+;; ==================== DeepSeek 集成功能 ====================
+(defun aider/deepseek-code-review (file-path)
+  "使用 DeepSeek 进行代码审查"
+  (interactive "f选择要审查的文件: ")
+  (when (and aider-deepseek-api-key (file-exists-p file-path))
+    (let* ((file-content (with-temp-buffer
+                           (insert-file-contents file-path)
+                           (buffer-string)))
+           (prompt (format "请审查以下代码，指出潜在问题、改进建议和最佳实践:\n\n```%s\n%s\n```"
+                          (file-name-extension file-path)
+                          file-content))
+           (buffer-name "*DeepSeek Code Review*"))
+      
+      (with-current-buffer (get-buffer-create buffer-name)
+        (erase-buffer)
+        (insert "=== DeepSeek 代码审查 ===\n\n")
+        (insert "文件: " file-path "\n")
+        (insert "时间: " (format-time-string "%Y-%m-%d %H:%M:%S") "\n\n")
+        (insert "正在使用 DeepSeek 分析代码...\n")
+        (pop-to-buffer buffer-name))
+      
+      ;; 调用 DeepSeek API
+      (aider/deepseek-chat prompt))))
+
+(defun aider/deepseek-optimize-code (start end)
+  "使用 DeepSeek 优化选中的代码"
+  (interactive "r")
+  (when (and aider-deepseek-api-key (region-active-p))
+    (let* ((code (buffer-substring-no-properties start end))
+           (prompt (format "请优化以下代码，提高性能、可读性和最佳实践:\n\n```\n%s\n```\n\n请提供优化后的代码和解释。" code))
+           (buffer-name "*DeepSeek Code Optimization*"))
+      
+      (with-current-buffer (get-buffer-create buffer-name)
+        (erase-buffer)
+        (insert "=== DeepSeek 代码优化 ===\n\n")
+        (insert "时间: " (format-time-string "%Y-%m-%d %H:%M:%S") "\n\n")
+        (insert "正在使用 DeepSeek 优化代码...\n")
+        (pop-to-buffer buffer-name))
+      
+      ;; 调用 DeepSeek API
+      (aider/deepseek-chat prompt))))
+
+(defun aider/deepseek-generate-tests (file-path)
+  "使用 DeepSeek 为文件生成测试"
+  (interactive "f选择要生成测试的文件: ")
+  (when (and aider-deepseek-api-key (file-exists-p file-path))
+    (let* ((file-content (with-temp-buffer
+                           (insert-file-contents file-path)
+                           (buffer-string)))
+           (prompt (format "请为以下代码生成全面的测试用例，包括单元测试、边界测试和错误处理:\n\n```%s\n%s\n```\n\n请提供测试代码和测试策略。" 
+                          (file-name-extension file-path)
+                          file-content))
+           (buffer-name "*DeepSeek Test Generation*"))
+      
+      (with-current-buffer (get-buffer-create buffer-name)
+        (erase-buffer)
+        (insert "=== DeepSeek 测试生成 ===\n\n")
+        (insert "文件: " file-path "\n")
+        (insert "时间: " (format-time-string "%Y-%m-%d %H:%M:%S") "\n\n")
+        (insert "正在使用 DeepSeek 生成测试...\n")
+        (pop-to-buffer buffer-name))
+      
+      ;; 调用 DeepSeek API
+      (aider/deepseek-chat prompt))))
+
+(defun aider/deepseek-documentation (file-path)
+  "使用 DeepSeek 生成代码文档"
+  (interactive "f选择要生成文档的文件: ")
+  (when (and aider-deepseek-api-key (file-exists-p file-path))
+    (let* ((file-content (with-temp-buffer
+                           (insert-file-contents file-path)
+                           (buffer-string)))
+           (prompt (format "请为以下代码生成详细的文档，包括函数说明、参数描述、返回值说明和使用示例:\n\n```%s\n%s\n```" 
+                          (file-name-extension file-path)
+                          file-content))
+           (buffer-name "*DeepSeek Documentation*"))
+      
+      (with-current-buffer (get-buffer-create buffer-name)
+        (erase-buffer)
+        (insert "=== DeepSeek 文档生成 ===\n\n")
+        (insert "文件: " file-path "\n")
+        (insert "时间: " (format-time-string "%Y-%m-%d %H:%M:%S") "\n\n")
+        (insert "正在使用 DeepSeek 生成文档...\n")
+        (pop-to-buffer buffer-name))
+      
+      ;; 调用 DeepSeek API
+      (aider/deepseek-chat prompt))))
+
+;; ==================== 智能任务路由 ====================
+(defun aider/smart-task-router (task-description)
+  "智能路由任务到最适合的 AI 模型"
+  (interactive "s描述你的任务: ")
+  (let ((best-model (aider/select-best-model task-description)))
+    (cond
+     ((string= best-model "deepseek-coder")
+      (message "推荐使用 DeepSeek Coder 模型处理代码任务")
+      (aider/switch-provider "deepseek"))
+     ((string= best-model "deepseek-chat")
+      (message "推荐使用 DeepSeek Chat 模型处理分析任务")
+      (aider/switch-provider "deepseek"))
+     (t
+      (message "推荐使用 OpenAI GPT-4 模型")
+      (aider/switch-provider "openai")))))
+
 (provide 'funcs)
 ;;; funcs.el ends here

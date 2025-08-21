@@ -25,6 +25,13 @@
 
 ## 🚀 主要特性
 
+### 启动速度优化
+- **启动时间优化**: 禁用非必要功能，延迟加载非关键模块
+- **GC 优化**: 启动时优化垃圾回收，启动完成后恢复正常设置
+- **字体缓存优化**: 避免字体缓存压缩，减少语法高亮装饰
+- **包管理优化**: 启动时不自动加载包，禁用快速启动
+- **延迟加载**: 启动后 2 秒延迟加载语言支持和 UI 增强模块
+
 ### 编程语言支持
 - **Python**: LSP、虚拟环境自动检测、Black 格式化
 - **Go**: goimports、golangci-lint、测试集成
@@ -34,8 +41,10 @@
 - **Rust**: LSP 支持、自动格式化
 
 ### AI 集成
-- **Aider**: GPT-4 代码助手集成
+- **Aider**: AI 代码助手，支持多种 AI 模型
+- **DeepSeek**: 完整的 DeepSeek AI 集成，包括代码审查、优化、测试生成
 - **Ellama**: 本地 LLM 支持 (Ollama)
+- **智能任务路由**: 自动选择最适合的 AI 模型
 
 ### 性能优化
 - 动态 GC 调优
@@ -55,6 +64,15 @@
 - `SPC o a a` - 添加当前文件
 - `SPC o a r` - 审查当前函数
 - `SPC o a e` - 解释选中代码
+
+### DeepSeek 集成
+- `SPC o a d` - DeepSeek 代码审查
+- `SPC o a o` - DeepSeek 代码优化
+- `SPC o a g` - DeepSeek 测试生成
+- `SPC o a t` - DeepSeek 文档生成
+- `SPC o a s` - 切换 AI 提供商
+- `SPC o a r` - 智能任务路由
+- `SPC o a m` - 快速访问菜单
 
 ### Ellama 集成
 - `SPC o e l` - 新建 LLM 聊天
@@ -84,7 +102,29 @@ git clone <repo-url> ~/.spacemacs.d
 
 ### AI 功能配置
 - Aider: 需要安装 `aider-chat` 命令行工具
+- DeepSeek: 需要设置 `DEEPSEEK_API_KEY` 环境变量
 - Ellama: 需要运行本地 Ollama 服务
+
+### 启动性能测试
+```bash
+# 快速性能检查
+emacs --batch -l scripts/startup-benchmark.el -f benchmark/run-quick-test
+
+# 生成性能报告
+emacs --batch -l scripts/startup-benchmark.el -f benchmark/generate-report
+```
+
+### 性能优化建议
+- 启动时间目标：< 3 秒
+- 定期运行健康检查脚本
+- 监控内存使用情况
+- 清理不需要的包和配置
+
+## 📚 相关文档
+
+- [DeepSeek 配置指南](DEEPSEEK_SETUP.md) - 详细的 DeepSeek AI 集成说明
+- [性能优化指南](modules/core-performance.el) - 启动速度和性能优化配置
+- [AI 集成文档](private/aider/) - Aider 和 DeepSeek 功能说明
 
 ---
 
