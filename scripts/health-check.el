@@ -1,17 +1,12 @@
+#!/usr/bin/env emacs --script
 ;;; health-check.el --- Spacemacs 配置健康检查 -*- lexical-binding: t; -*-
+;; Author: xuzhifeng
+;; Created: 2024
 
 ;; ==================== 加载核心模块 ====================
-;; 确保核心函数可用
+(add-to-list 'load-path "~/.spacemacs.d/modules/")
 (load-file "~/.spacemacs.d/modules/core-performance.el")
-
-;; 定义缺失的函数
-(defun my/load-config-module (module-name)
-  "安全加载配置模块"
-  (let ((module-file (expand-file-name (concat module-name ".el") "~/.spacemacs.d/modules/")))
-    (when (file-exists-p module-file)
-      (condition-case err
-          (load-file module-file)
-        (error (message "加载模块 %s 失败: %s" module-name (error-message-string err)))))))
+(load-file "~/.spacemacs.d/modules/error-handling.el")
 
 ;; ==================== 健康检查配置 ====================
 (defvar health-check-results '()
@@ -46,8 +41,9 @@
   "检查模块加载状态"
   (message "检查模块加载...")
   
-  (let ((modules '("core-performance" "error-handling" "lang-support" 
-                   "ui-enhancement" "system-integration" "security-audit")))
+  (let ((modules '("core-performance" "error-handling" "package-fix"
+                   "system-integration" "ui-enhancement" "lang-support" 
+                   "security-audit" "macos-specific" "windows-specific")))
     (dolist (module modules)
       (let ((module-path (expand-file-name (concat "modules/" module ".el") "~/.spacemacs.d/")))
         (if (file-exists-p module-path)
@@ -211,6 +207,9 @@
       (message "⚠️  Spacemacs 配置状态: 基本可用 (%d 个问题)" critical-errors))
      (t
       (message "❌ Spacemacs 配置状态: 需要修复 (%d 个问题)" critical-errors)))))
+
+;; ==================== 运行检查 ====================
+(health/run-all-checks)
 
 (provide 'health-check)
 ;;; health-check.el ends here
