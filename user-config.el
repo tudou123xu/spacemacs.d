@@ -14,7 +14,8 @@
 
 ;; ==================== 核心模块加载 ====================
 (mapc #'my/load-config-module
-      '("core-performance"     ; 性能优化
+      '("package-fix"          ; 包依赖修复和网络优化
+        "core-performance"     ; 性能优化
         "error-handling"       ; 错误处理和容错
         "lang-support"         ; 编程语言支持
         "ui-enhancement"       ; 界面增强
