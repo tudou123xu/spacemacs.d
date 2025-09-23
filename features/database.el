@@ -20,9 +20,7 @@
   "从配置文件加载数据库配置"
   (let ((config-file "~/org/db-config.org"))
     (when (file-exists-p config-file)
-      (org-babel-load-file config-file)
-      (dolist (profile '("mysql-prod" "pg-staging"))
-        (puthash profile (org-babel-ref-resolve profile) database/config-table)))))
+      (org-babel-load-file config-file))))
 
 ;; ==================== 连接功能 ====================
 (defun database/connect (profile)

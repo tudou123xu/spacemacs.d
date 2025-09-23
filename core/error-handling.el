@@ -159,18 +159,6 @@
     (last-error-time . nil))
   "错误统计信息")
 
-(defun my/update-error-stats (type)
-  "更新错误统计"
-  (setq my/error-stats
-        (plist-put my/error-stats :last-error-time (current-time)))
-  (if (eq type 'error)
-      (setq my/error-stats
-            (plist-put my/error-stats :total-errors 
-                       (1+ (plist-get my/error-stats :total-errors))))
-    (setq my/error-stats
-          (plist-put my/error-stats :total-warnings 
-                     (1+ (plist-get my/error-stats :total-warnings))))))
-
 ;; ==================== 错误报告 ====================
 (defun my/generate-error-report ()
   "生成错误报告"
@@ -180,14 +168,7 @@
       (insert (format "Emacs 错误报告\n"))
       (insert (format "生成时间: %s\n" (format-time-string "%Y-%m-%d %H:%M:%S")))
       (insert (format "Emacs 版本: %s\n" emacs-version))
-      (insert (format "系统类型: %s\n" system-type))
-      (insert (format "总错误数: %d\n" (plist-get my/error-stats :total-errors)))
-      (insert (format "总警告数: %d\n" (plist-get my/error-stats :total-warnings)))
-      (insert (format "最后错误时间: %s\n" 
-                      (if (plist-get my/error-stats :last-error-time)
-                          (format-time-string "%Y-%m-%d %H:%M:%S" 
-                                              (plist-get my/error-stats :last-error-time))
-                        "无"))))
+      (insert (format "系统类型: %s\n" system-type)))
     (message "错误报告已生成: %s" report-file)))
 
 ;; ==================== 初始化 ====================

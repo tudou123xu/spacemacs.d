@@ -145,17 +145,17 @@
 (defun ai-assistant/quick-menu ()
   "显示 AI 助手快速访问菜单"
   (interactive)
-  (let ((menu-options '("代码审查" "代码优化" "代码解释" "切换模型")))
-    (let ((choice (completing-read "选择 AI 功能: " menu-options)))
-      (pcase choice
-        ("代码审查" (ai-assistant/ai-code-review (buffer-file-name)))
-        ("代码优化" (if (region-active-p)
-                        (ai-assistant/ai-optimize-code (region-beginning) (region-end))
-                      (message "请先选择要优化的代码区域")))
-        ("代码解释" (if (region-active-p)
-                        (ai-assistant/explain-region (region-beginning) (region-end))
-                      (message "请先选择要解释的代码区域")))
-        ("切换模型" (ai-assistant/switch-provider nil))))))
+  (let ((menu-options '("代码审查" "代码优化" "代码解释" "切换模型"))
+        (choice (completing-read "选择 AI 功能: " menu-options)))
+    (pcase choice
+      ("代码审查" (ai-assistant/ai-code-review (buffer-file-name)))
+      ("代码优化" (if (region-active-p)
+                      (ai-assistant/ai-optimize-code (region-beginning) (region-end))
+                    (message "请先选择要优化的代码区域")))
+      ("代码解释" (if (region-active-p)
+                      (ai-assistant/explain-region (region-beginning) (region-end))
+                    (message "请先选择要解释的代码区域")))
+      ("切换模型" (ai-assistant/switch-provider nil)))))
 
 (defun ai-assistant/simple-start ()
   "简单启动 AI 助手（不依赖外部包）"

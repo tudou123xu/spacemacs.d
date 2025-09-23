@@ -204,7 +204,7 @@ It should only modify the values of Spacemacs settings."
 
    ;; Maximum allowed time in seconds to contact an ELPA repository.
    ;; (default 5)
-   dotspacemacs-elpa-timeout 5
+   dotspacemacs-elpa-timeout 60
 
    ;; GC 优化：启动时使用更大的阈值，然后在模块加载中恢复
    dotspacemacs-gc-cons '(134217728 0.1)  ; 128MB
@@ -629,6 +629,7 @@ It is mostly for variables that should be set before packages are loaded.
 If you are unsure, try setting them in `dotspacemacs/user-config' first."
 
   ;; 环境变量和原生编译配置已在 early-init.el 中处理
+  ;; 包源配置已移至 core/package.el 中统一管理
   
   )
 
@@ -639,6 +640,7 @@ This function is called only while dumping Spacemacs configuration. You can
 `require' or `load' the libraries of your choice that will be included in the
 dump."
   ;; 核心配置已移至分层配置管理器
+  ;; 包管理器初始化已移至 core/package.el 中统一管理
 
   )
 (defun dotspacemacs/user-config ()

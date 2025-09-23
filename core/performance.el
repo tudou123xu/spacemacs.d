@@ -55,11 +55,7 @@
   (run-with-timer 5 nil
                  (lambda ()
                    (let ((load-time (- (float-time) my/startup-start-time)))
-                     (message "Emacs 启动时间: %.2f 秒" load-time)
-                     (cond
-                      ((< load-time 3.0) (message "✓ 启动速度优秀"))
-                      ((< load-time 5.0) (message "✓ 启动速度良好"))
-                      (t (message "⚠ 启动速度需要优化")))))))
+                     (message "Emacs 启动时间: %.2f 秒" load-time)))))
 
 ;; ==================== 初始化 ====================
 (defun my/init-performance ()
