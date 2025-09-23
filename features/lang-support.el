@@ -9,8 +9,7 @@
     (setq lsp-idle-delay 0.2
           lsp-file-watch-threshold 2000
           lsp-enable-file-watchers t
-          lsp-keymap-prefix "C-c l"
-          lsp-completion-provider :company)))
+          lsp-keymap-prefix "C-c l")))
 
 ;; ==================== Python 配置 ====================
 (defun my/setup-python ()

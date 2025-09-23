@@ -30,6 +30,8 @@
 │    - ui-enhancement.el (界面增强)                          │
 │    - lang-support.el (语言支持)                            │
 │    - security.el (安全审计)                                │
+│    - ai-assistant.el (AI 助手)                             │
+│    - database.el (数据库管理)                              │
 └─────────────────────────────────────────────────────────────┘
                                 │
 ┌─────────────────────────────────────────────────────────────┐
@@ -38,7 +40,7 @@
 │  • system/ (系统层)                                        │
 │    - integration.el (系统集成)                             │
 │    - platform/ (平台专属)                                  │
-│      - macos.el, windows.el, linux.el                      │
+│      - macos.el, windows.el                                │
 │  • utils/ (工具层)                                         │
 │    - common.el (通用工具)                                  │
 └─────────────────────────────────────────────────────────────┘
@@ -62,28 +64,31 @@
 
 ```
 ~/.spacemacs.d/
-├── init.el                    # 主配置文件
-├── user-config.el             # 用户配置入口
-├── modules/                   # 配置模块
-│   ├── index.el              # 模块索引
-│   ├── core-performance.el   # 核心性能优化
-│   ├── error-handling.el     # 错误处理
-│   ├── package-fix.el        # 包依赖修复
-│   ├── system-integration.el # 系统集成
+├── init.el                    # Spacemacs 主配置
+├── user-config.el            # 用户配置入口
+├── config-manager.el         # 分层配置管理器
+├── README.md                 # 项目说明
+├── core/                     # 核心业务模块
+│   ├── performance.el        # 性能优化
+│   ├── package.el            # 包管理
+│   └── error-handling.el     # 错误处理
+├── features/                 # 功能模块
 │   ├── ui-enhancement.el     # 界面增强
 │   ├── lang-support.el       # 语言支持
-│   ├── security-audit.el     # 安全审计
-│   ├── macos-specific.el     # macOS 专属
-│   └── windows-specific.el   # Windows 专属
-├── scripts/                   # 工具脚本
-│   ├── config-manager.sh     # 配置管理器
-│   ├── health-check.el       # 健康检查
-│   ├── fix-packages.el       # 包修复
+│   ├── security.el           # 安全审计
+│   ├── ai-assistant.el       # AI 助手
+│   └── database.el           # 数据库管理
+├── system/                   # 系统层
+│   ├── integration.el        # 系统集成
+│   └── platform/             # 平台专属
+│       ├── macos.el          # macOS 配置
+│       └── windows.el        # Windows 配置
+├── utils/                    # 工具层
+│   └── common.el             # 通用工具
+├── scripts/                  # 脚本工具
+│   ├── config-manager.sh     # 配置管理脚本
+│   ├── quick-fix.el          # 快速修复工具
 │   └── start-emacs.sh        # 启动脚本
-├── private/                   # 私有配置
-│   ├── aider/                # AI 助手配置
-│   ├── ellama/               # Ollama 配置
-│   └── db-layer/             # 数据库配置
 └── logs/                     # 日志文件
 ```
 
@@ -94,8 +99,8 @@
 # 运行健康检查
 ~/.spacemacs.d/scripts/config-manager.sh health
 
-# 或使用 Emacs 脚本
-emacs --batch -l ~/.spacemacs.d/scripts/health-check.el
+# 或使用 Emacs 命令
+M-x my/show-config-status
 ```
 
 ### 2. 修复包依赖
@@ -103,8 +108,8 @@ emacs --batch -l ~/.spacemacs.d/scripts/health-check.el
 # 自动修复包依赖
 ~/.spacemacs.d/scripts/config-manager.sh fix
 
-# 或使用 Emacs 脚本
-emacs --script ~/.spacemacs.d/scripts/fix-packages.el
+# 或使用 Emacs 命令
+M-x my/quick-fix-all
 ```
 
 ### 3. 启动 Emacs
@@ -125,6 +130,9 @@ M-x my/show-config-status
 
 ;; 验证配置完整性
 M-x my/validate-configuration
+
+;; 加载所有配置层
+M-x my/load-all-layers
 ```
 
 ### 快速修复
@@ -135,6 +143,112 @@ M-x my/quick-fix-all
 
 ### 性能监控
 启动后会自动显示启动时间和性能建议
+
+### AI 助手功能
+```elisp
+;; 启动 AI 助手会话（完整版）
+M-x ai-assistant/start-session
+
+;; 简单启动 AI 助手（推荐）
+M-x ai-assistant/simple-start
+
+;; AI 代码审查
+M-x ai-assistant/ai-code-review
+
+;; AI 代码优化
+M-x ai-assistant/ai-optimize-code
+
+;; AI 代码解释
+M-x ai-assistant/explain-region
+
+;; AI 函数审查
+M-x ai-assistant/review-current-function
+
+;; 切换 AI 提供商
+M-x ai-assistant/switch-provider
+
+;; 快速菜单
+M-x ai-assistant/quick-menu
+```
+
+### 数据库管理
+```elisp
+;; 连接数据库
+M-x database/connect
+
+;; 执行 SQL 查询
+M-x database/execute-query
+
+;; 格式化 SQL
+M-x database/format-query
+
+;; 大写 SQL 关键字
+M-x database/uppercase-keywords
+
+;; 列出数据库表
+M-x database/list-tables
+
+;; 描述表结构
+M-x database/describe-table
+
+;; 显示所有数据库
+M-x database/show-databases
+```
+
+## ⌨️ 快捷键说明
+
+### AI 助手快捷键
+```elisp
+;; Spacemacs Leader 键
+SPC o a s    ; 启动 AI 助手会话（完整版）
+SPC o a a    ; 简单启动 AI 助手（推荐）
+SPC o a d    ; AI 代码审查
+SPC o a o    ; AI 代码优化
+SPC o a e    ; AI 代码解释
+SPC o a r    ; AI 函数审查
+SPC o a s    ; 切换 AI 提供商
+SPC o a m    ; AI 快速菜单
+
+;; 全局快捷键
+C-c a s      ; 启动 AI 助手会话（完整版）
+C-c a a      ; 简单启动 AI 助手（推荐）
+C-c a d      ; AI 代码审查
+C-c a o      ; AI 代码优化
+C-c a e      ; AI 代码解释
+C-c a r      ; AI 函数审查
+C-c a p      ; 切换 AI 提供商
+C-c a m      ; AI 快速菜单
+
+;; 编程模式快捷键
+SPC a d      ; AI 代码审查
+SPC a o      ; AI 代码优化
+SPC a e      ; AI 代码解释
+SPC a r      ; AI 函数审查
+```
+
+### 数据库管理快捷键
+```elisp
+;; Spacemacs Leader 键
+SPC o d c    ; 连接数据库
+SPC o d q    ; 执行 SQL 查询
+SPC o d f    ; 格式化 SQL
+SPC o d u    ; 大写 SQL 关键字
+SPC o d l    ; 列出数据库表
+SPC o d d    ; 描述表结构
+SPC o d s    ; 显示所有数据库
+
+;; SQL 模式快捷键
+SPC c q      ; 执行 SQL 查询
+SPC c f      ; 格式化 SQL
+SPC c u      ; 大写 SQL 关键字
+SPC c l      ; 列出数据库表
+SPC c d      ; 描述表结构
+
+;; 全局快捷键
+C-c d c      ; 连接数据库
+C-c d q      ; 执行 SQL 查询
+C-c d f      ; 格式化 SQL
+```
 
 ## 🔧 自定义配置
 
@@ -147,6 +261,8 @@ M-x my/quick-fix-all
 - **性能优化**: 编辑 `core/performance.el`
 - **界面设置**: 编辑 `features/ui-enhancement.el`
 - **语言支持**: 编辑 `features/lang-support.el`
+- **AI 助手**: 编辑 `features/ai-assistant.el`
+- **数据库管理**: 编辑 `features/database.el`
 - **系统集成**: 编辑 `system/integration.el`
 
 ## 📊 性能优化
@@ -210,8 +326,19 @@ M-x my/quick-fix-all
 
 # 查看配置状态
 ~/.spacemacs.d/scripts/config-manager.sh status
+```
 
-# 生成错误报告
+```elisp
+;; 查看配置层状态
+M-x my/show-config-status
+
+;; 验证配置完整性
+M-x my/validate-configuration
+
+;; 加载所有配置层
+M-x my/load-all-layers
+
+;; 生成错误报告
 M-x my/generate-error-report
 ```
 
@@ -229,11 +356,13 @@ M-x my/generate-error-report
 
 ## 🎯 优化亮点
 
-### v2.0 更新
-- **代码简化**: 删除无用功能，精简代码结构
-- **模块优化**: 统一代码风格，提高可维护性
-- **脚本清理**: 删除冗余脚本，保留核心功能
-- **文档更新**: 完善使用说明和故障排除指南
+### v2.1 更新
+- **代码整理**: 删除重复功能，优化代码结构
+- **模块简化**: 统一配置管理，减少冗余代码
+- **性能优化**: 简化启动流程，提升加载速度
+- **文件清理**: 删除无用脚本和配置文件
+- **依赖优化**: 精简包依赖，减少安装时间
+- **代码重构**: 统一错误处理和日志记录
 
 ### 性能提升
 - 启动时间减少 50%

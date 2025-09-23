@@ -6,8 +6,12 @@
 ;; 加载分层配置管理器
 (add-to-list 'load-path "~/.spacemacs.d/")
 (when (file-exists-p "~/.spacemacs.d/config-manager.el")
-  (load-file "~/.spacemacs.d/config-manager.el")
-  (message "✓ 分层配置管理器已加载"))
+  (condition-case err
+      (progn
+        (load-file "~/.spacemacs.d/config-manager.el")
+        (message "✓ 分层配置管理器已加载"))
+    (error
+     (message "✗ 分层配置管理器加载失败: %s" (error-message-string err)))))
 
 ;; ==================== 用户自定义配置 ====================
 ;; 在这里添加您的个人配置

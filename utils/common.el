@@ -52,11 +52,11 @@
   (condition-case err
       (funcall func)
     (error 
-     (message "✗ %s: %s" (or error-message "函数执行失败") (error-message-string err))
+     (my/log-message 'error (or error-message "函数执行失败") (error-message-string err))
      (when fallback-func
        (condition-case fallback-err
            (funcall fallback-func)
-         (error (message "✗ 备用函数也失败: %s" (error-message-string fallback-err))))))))
+         (error (my/log-message 'error "备用函数也失败" (error-message-string fallback-err))))))))
 
 ;; ==================== 配置常量 ====================
 (defconst my/config-paths

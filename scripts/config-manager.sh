@@ -154,8 +154,8 @@ show_status() {
     
     # 显示模块状态
     print_info "模块状态:"
-    for module in core-performance error-handling package-fix system-integration ui-enhancement lang-support security-audit; do
-        if [[ -f "$MODULES_DIR/$module.el" ]]; then
+    for module in performance error-handling package ui-enhancement lang-support security ai-assistant database; do
+        if [[ -f "$CONFIG_DIR/core/$module.el" ]] || [[ -f "$CONFIG_DIR/features/$module.el" ]]; then
             echo -e "  ${GREEN}✓${NC} $module"
         else
             echo -e "  ${RED}✗${NC} $module"

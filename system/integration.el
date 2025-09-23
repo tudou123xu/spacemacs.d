@@ -6,13 +6,10 @@
 (defun my/setup-environment ()
   "设置环境变量"
   (when (or (my/system-is-mac) (my/system-is-linux))
-    (use-package exec-path-from-shell
-      :ensure t
-      :config
-      (progn
-        (setq exec-path-from-shell-variables 
-              '("PATH" "GOPATH" "GOROOT" "PYTHONPATH"))
-        (exec-path-from-shell-initialize)))))
+    (when (package-installed-p 'exec-path-from-shell)
+      (setq exec-path-from-shell-variables 
+            '("PATH" "GOPATH" "GOROOT" "PYTHONPATH"))
+      (exec-path-from-shell-initialize))))
 
 ;; ==================== 编码设置 ====================
 (defun my/setup-encoding ()

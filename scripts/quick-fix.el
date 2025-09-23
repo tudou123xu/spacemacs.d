@@ -55,7 +55,7 @@
      (message "⚠ 包列表刷新失败，使用缓存版本")))
   
   ;; 安装关键包
-  (let ((critical-packages '(spinner auctex lsp-mode lsp-ui company)))
+  (let ((critical-packages '(spinner auctex lsp-mode company)))
     (dolist (pkg critical-packages)
       (my/smart-install-package pkg))))
 

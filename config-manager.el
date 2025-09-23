@@ -24,24 +24,10 @@
      :required t
      :dependencies (foundation core))
     
-    (platform
-     :path "system/platform/"
-     :modules ("macos" "windows")
-     :priority 4
-     :required t
-     :dependencies (system))
-    
     (features
      :path "features/"
-     :modules ("ui-enhancement" "lang-support" "security")
-     :priority 5
-     :required nil
-     :dependencies (core))
-    
-    (services
-     :path "scripts/"
-     :modules ("config-manager" "quick-fix")
-     :priority 6
+     :modules ("ui-enhancement" "lang-support" "security" "ai-assistant" "database")
+     :priority 4
      :required nil
      :dependencies (core)))
   "配置层定义")
@@ -49,29 +35,30 @@
 ;; ==================== 层加载器 ====================
 (defun my/load-layer (layer-name)
   "加载指定配置层"
-  (let ((layer-def (assoc layer-name my/config-layers)))
-    (when layer-def
-      (let ((path (plist-get (cdr layer-def) :path))
-            (modules (plist-get (cdr layer-def) :modules))
-            (required (plist-get (cdr layer-def) :required)))
-        
+  (unless (my/layer-loaded-p layer-name)
+    (let* ((layer-def (assoc layer-name my/config-layers))
+           (path (plist-get (cdr layer-def) :path))
+           (modules (plist-get (cdr layer-def) :modules))
+           (required (plist-get (cdr layer-def) :required))
+           (dependencies (plist-get (cdr layer-def) :dependencies)))
+      
+      (when layer-def
         (message "加载配置层: %s" layer-name)
         
-        ;; 检查依赖
-        (let ((dependencies (plist-get (cdr layer-def) :dependencies)))
-          (dolist (dep dependencies)
-            (unless (my/layer-loaded-p dep)
-              (my/load-layer dep))))
+        ;; 加载依赖
+        (dolist (dep dependencies)
+          (my/load-layer dep))
         
         ;; 加载模块
         (dolist (module modules)
-          (let ((module-path (concat "~/.spacemacs.d/" path)))
-            (if (my/load-config-module module module-path)
+          (let ((module-path (expand-file-name (concat module ".el") 
+                                              (expand-file-name path "~/.spacemacs.d/"))))
+            (if (my/load-module-file module-path)
                 (message "  ✓ 模块 %s 加载成功" module)
               (when required
                 (message "  ✗ 必需模块 %s 加载失败" module)))))
         
-        (setq my/loaded-layers (cons layer-name my/loaded-layers))
+        (push layer-name my/loaded-layers)
         (message "✓ 配置层 %s 加载完成" layer-name)))))
 
 ;; ==================== 层状态检查 ====================
@@ -82,13 +69,27 @@
   "检查配置层是否已加载"
   (member layer-name my/loaded-layers))
 
+(defun my/load-module-file (module-path)
+  "安全加载模块文件"
+  (when (file-exists-p module-path)
+    (condition-case err
+        (progn
+          (load-file module-path)
+          (message "✓ 模块 %s 加载成功" (file-name-nondirectory module-path))
+          t)
+      (error
+       (message "✗ 模块 %s 加载失败: %s" (file-name-nondirectory module-path) (error-message-string err))
+       nil))))
+
 ;; ==================== 智能加载 ====================
 (defun my/load-config-layers ()
   "智能加载所有配置层"
   (message "开始加载配置层...")
   
-  ;; 加载必需层
-  (dolist (layer my/config-layers)
+  ;; 按优先级排序并加载必需层
+  (dolist (layer (sort (copy-sequence my/config-layers)
+                       (lambda (a b) (< (plist-get (cdr a) :priority)
+                                        (plist-get (cdr b) :priority)))))
     (let ((layer-name (car layer))
           (required (plist-get (cdr layer) :required)))
       (when required
@@ -105,17 +106,26 @@
   
   (message "✓ 配置层加载完成"))
 
+(defun my/load-all-layers ()
+  "加载所有配置层"
+  (interactive)
+  (message "开始加载所有配置层...")
+  (setq my/loaded-layers '())
+  (dolist (layer (sort (copy-sequence my/config-layers)
+                       (lambda (a b) (< (plist-get (cdr a) :priority)
+                                        (plist-get (cdr b) :priority)))))
+    (my/load-layer (car layer)))
+  (message "所有配置层加载完成"))
+
 ;; ==================== 配置验证 ====================
 (defun my/validate-configuration ()
   "验证配置完整性"
+  (interactive)
   (message "验证配置完整性...")
   
   (let ((required-layers '("foundation" "core" "system" "platform"))
-        (missing-layers '()))
-    
-    (dolist (layer required-layers)
-      (unless (my/layer-loaded-p layer)
-        (push layer missing-layers)))
+        (missing-layers (seq-filter (lambda (layer) (not (my/layer-loaded-p layer)))
+                                    required-layers)))
     
     (if missing-layers
         (message "警告: 缺少关键配置层: %s" (string-join missing-layers ", "))
@@ -129,7 +139,9 @@
   (dolist (layer my/config-layers)
     (let ((layer-name (car layer))
           (loaded (my/layer-loaded-p layer-name)))
-      (message "  %s: %s" layer-name (if loaded "已加载" "未加载")))))
+      (message "  %s: %s" layer-name (if loaded "已加载" "未加载"))))
+  
+  (message "已加载层数: %d/%d" (length my/loaded-layers) (length my/config-layers)))
 
 ;; ==================== 初始化 ====================
 (defun my/init-config-manager ()

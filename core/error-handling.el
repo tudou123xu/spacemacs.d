@@ -60,17 +60,7 @@
       (error (message "警告日志记录失败: %s" (error-message-string err))))))
 
 ;; ==================== 安全函数执行 ====================
-(defun my/safe-execute (func &optional fallback-func error-message)
-  "安全执行函数，失败时执行备用函数"
-  (condition-case err
-      (funcall func)
-    (error 
-     (my/log-error (or error-message (format "函数执行失败: %s" func))
-                   (error-message-string err))
-     (when fallback-func
-       (condition-case fallback-err
-           (funcall fallback-func)
-         (error (my/log-error "备用函数也失败" (error-message-string fallback-err))))))))
+;; 使用 common.el 中的统一实现
 
 (defun my/safe-execute-with-retry (func retry-count &optional delay)
   "带重试机制的安全函数执行"
