@@ -4,15 +4,22 @@
 
 ;; ==================== 配置层定义 ====================
 (defconst my/config-layers
-  '((foundation
+  '((early-init
+     :path ""
+     :modules ("early-init")
+     :priority 0
+     :required t)
+    
+    (foundation
      :path "utils/"
      :modules ("common")
      :priority 1
-     :required t)
+     :required t
+     :dependencies (early-init))
     
     (core
      :path "core/"
-     :modules ("performance" "package" "error-handling")
+     :modules ("performance" "package" "error-handling" "fix-missing-packages")
      :priority 2
      :required t
      :dependencies (foundation))
@@ -51,8 +58,10 @@
         
         ;; 加载模块
         (dolist (module modules)
-          (let ((module-path (expand-file-name (concat module ".el") 
-                                              (expand-file-name path "~/.spacemacs.d/"))))
+          (let ((module-path (if (string-empty-p path)
+                                 (expand-file-name (concat module ".el") "~/.spacemacs.d/")
+                               (expand-file-name (concat module ".el") 
+                                               (expand-file-name path "~/.spacemacs.d/")))))
             (if (my/load-module-file module-path)
                 (message "  ✓ 模块 %s 加载成功" module)
               (when required
@@ -123,7 +132,7 @@
   (interactive)
   (message "验证配置完整性...")
   
-  (let ((required-layers '("foundation" "core" "system" "platform"))
+  (let ((required-layers '("early-init" "foundation" "core" "system"))
         (missing-layers (seq-filter (lambda (layer) (not (my/layer-loaded-p layer)))
                                     required-layers)))
     

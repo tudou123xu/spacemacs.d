@@ -178,8 +178,8 @@ It should only modify the values of Spacemacs settings."
    ;;
    ;; (default nil)
    dotspacemacs-enable-emacs-pdumper nil
-   
-  ;; 原生编译配置已在 early-init.el 中处理
+
+   ;; 原生编译配置已在 early-init.el 中处理
 
    ;; Name of executable file pointing to emacs 27+. This executable must be
    ;; in your PATH.
@@ -630,7 +630,7 @@ If you are unsure, try setting them in `dotspacemacs/user-config' first."
 
   ;; 环境变量和原生编译配置已在 early-init.el 中处理
   ;; 包源配置已移至 core/package.el 中统一管理
-  
+
   )
 
 
@@ -668,25 +668,25 @@ This function is called at the very end of Spacemacs initialization."
    ;; If there is more than one, they won't work right.
    '(package-selected-packages
      '(ac-ispell ace-link ace-pinyin aggressive-indent aider attrap auctex
-                 auto-compile auto-dictionary auto-highlight-symbol auto-yasnippet
-                 blacken browse-at-remote bundler cargo ccls centered-cursor-mode
-                 chinese-conv chruby cider cider-eval-sexp-fu clean-aindent-mode
-                 clojure-snippets cmm-mode code-cells color-identifiers-mode
-                 column-enforce-mode company-anaconda company-auctex
-                 company-c-headers company-cabal company-go company-lua
-                 company-math company-reftex company-restclient company-rtags
-                 company-statistics company-web company-ycmd counsel-css
-                 counsel-projectile cpp-auto-include cuda-mode cython-mode dante
-                 dap-mode deft devdocs diminish dired-quick-sort disaster docker
-                 docker-tramp dockerfile-mode dotenv-mode drag-stuff dumb-jump
-                 editorconfig elisp-def elisp-slime-nav ellama emmet-mode emr
-                 engine-mode esh-help eshell-prompt-extras eshell-z evil-anzu
-                 evil-args evil-cleverparens evil-collection evil-easymotion
-                 evil-escape evil-evilified-state evil-exchange evil-goggles
-                 evil-iedit-state evil-indent-plus evil-lion evil-lisp-state
-                 evil-matchit evil-mc evil-nerd-commenter evil-numbers evil-org
-                 evil-surround evil-tex evil-textobj-line evil-tutor
-                 evil-unimpaired evil-visual-mark-mode evil-visualstar
+                 auctex-11.87 auto-compile auto-dictionary auto-highlight-symbol
+                 auto-yasnippet blacken browse-at-remote bundler cargo ccls
+                 centered-cursor-mode chinese-conv chruby cider cider-eval-sexp-fu
+                 clean-aindent-mode clojure-snippets cmm-mode code-cells
+                 color-identifiers-mode column-enforce-mode company-anaconda
+                 company-auctex company-c-headers company-cabal company-go
+                 company-lua company-math company-reftex company-restclient
+                 company-rtags company-statistics company-web company-ycmd
+                 counsel-css counsel-projectile cpp-auto-include cuda-mode
+                 cython-mode dante dap-mode deft devdocs diminish dired-quick-sort
+                 disaster docker docker-tramp dockerfile-mode dotenv-mode
+                 drag-stuff dumb-jump editorconfig elisp-def elisp-slime-nav
+                 ellama emmet-mode emr engine-mode esh-help eshell-prompt-extras
+                 eshell-z evil-anzu evil-args evil-cleverparens evil-collection
+                 evil-easymotion evil-escape evil-evilified-state evil-exchange
+                 evil-goggles evil-iedit-state evil-indent-plus evil-lion
+                 evil-lisp-state evil-matchit evil-mc evil-nerd-commenter
+                 evil-numbers evil-org evil-surround evil-tex evil-textobj-line
+                 evil-tutor evil-unimpaired evil-visual-mark-mode evil-visualstar
                  exec-path-from-shell expand-region eyebrowse fancy-battery
                  feature-mode find-by-pinyin-dired flx-ido flycheck-elsa
                  flycheck-haskell flycheck-package flycheck-pos-tip flycheck-rtags
@@ -702,25 +702,26 @@ This function is called at the very end of Spacemacs initialization."
                  indent-guide info+ inspector ivy-avy ivy-hydra ivy-purpose
                  ivy-rtags ivy-xref ivy-yasnippet js-doc js2-refactor json-mode
                  json-navigator json-reformat launchctl link-hint live-py-mode
-                 livid-mode lorem-ipsum lsp-haskell lsp-ivy lsp-latex lsp-mode
-                 lsp-origami lsp-pyright lsp-python-ms lsp-ui macrostep
-                 markdown-toc md-readme minitest mmm-mode multi-line multi-term
-                 multi-vterm mwim nameless nodejs-repl nose nov npm-mode ob-go
-                 ob-http ob-restclient open-junk-file opencl-mode org-cliplink
-                 org-contrib org-download org-journal org-mime org-pomodoro
-                 org-present org-projectile org-rich-yank org-roam org-roam-server
-                 org-superstar orgit-forge osx-clipboard osx-dictionary osx-trash
-                 overseer ox-hugo pangu-spacing paradox password-generator
-                 pdf-view-restore pip-requirements pipenv pippel poetry popwin
-                 prettier-js prodigy projectile-rails pt pug-mode py-isort pydoc
-                 pyenv-mode pyim pyim-basedict pylookup pytest quickrun racer
-                 racket-mode rainbow-delimiters rainbow-identifiers rainbow-mode
-                 ranger rbenv restart-emacs reveal-in-osx-finder rjsx-mode robe
-                 ron-mode rspec-mode rubocop rubocopfmt ruby-hash-syntax
-                 ruby-refactor ruby-test-mode ruby-tools rvm sass-mode scss-mode
+                 livid-mode lorem-ipsum lsp-haskell lsp-ivy lsp-java lsp-latex
+                 lsp-mode lsp-origami lsp-pyright lsp-python-ms lsp-treemacs
+                 lsp-ui macrostep markdown-toc mathjax mathjax-0.1 md-readme
+                 minitest mmm-mode multi-line multi-term multi-vterm mwim nameless
+                 nodejs-repl nose nov npm-mode ob-go ob-http ob-restclient
+                 open-junk-file opencl-mode org-cliplink org-contrib org-download
+                 org-journal org-mime org-pomodoro org-present org-projectile
+                 org-rich-yank org-roam org-roam-server org-superstar orgit-forge
+                 osx-clipboard osx-dictionary osx-trash overseer ox-hugo
+                 pangu-spacing paradox password-generator pdf-view-restore
+                 pip-requirements pipenv pippel poetry popwin prettier-js prodigy
+                 projectile-rails pt pug-mode py-isort pydoc pyenv-mode pyim
+                 pyim-basedict pylookup pytest quickrun racer racket-mode
+                 rainbow-delimiters rainbow-identifiers rainbow-mode ranger rbenv
+                 restart-emacs reveal-in-osx-finder rjsx-mode robe ron-mode
+                 rspec-mode rubocop rubocopfmt ruby-hash-syntax ruby-refactor
+                 ruby-test-mode ruby-tools rvm sass-mode scss-mode
                  seeing-is-believing shell-pop slim-mode smeargle smex space-doc
                  spaceline-all-the-icons spacemacs-purpose-popwin
-                 spacemacs-whitespace-cleanup sphinx-doc spinner
+                 spacemacs-whitespace-cleanup sphinx-doc spinner spinner-1.7.2
                  string-edit-at-point string-inflection symbol-overlay symon
                  tagedit term-cursor terminal-here tide toc-org toml-mode
                  treemacs-evil treemacs-icons-dired treemacs-magit treemacs-persp

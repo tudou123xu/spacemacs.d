@@ -59,13 +59,33 @@
          (when (> retries 0) (sleep-for 2)))))
     success))
 
+(defun my/smart-package-install-with-version (package version &optional retry-count)
+  "智能包安装，指定版本"
+  (let ((retries (or retry-count 3))
+        (success nil))
+    (while (and (> retries 0) (not success))
+      (condition-case err
+          (progn
+            (package-install (intern (concat (symbol-name package) "-" version)))
+            (setq success t)
+            (message "✓ 包 %s-%s 安装成功" package version))
+        (error
+         (message "✗ 包 %s-%s 安装失败: %s" package version (error-message-string err))
+         (setq retries (1- retries))
+         (when (> retries 0) (sleep-for 2)))))
+    success))
+
 ;; ==================== 包版本兼容性处理 ====================
 (defun my/fix-package-version-compatibility ()
   "修复包版本兼容性问题"
-  (let ((critical-packages '(spinner auctex)))
-    (dolist (pkg critical-packages)
-      (when (not (package-installed-p pkg))
-        (my/smart-package-install (symbol-name pkg))))))
+  (let ((critical-packages '((spinner . "1.7.2")
+                             (auctex . "11.87")
+                             (mathjax . "0.1"))))
+    (dolist (pkg-spec critical-packages)
+      (let ((pkg (car pkg-spec))
+            (version (cdr pkg-spec)))
+        (when (not (package-installed-p pkg))
+          (my/smart-package-install-with-version pkg version))))))
 
 ;; ==================== 依赖包修复 ====================
 (defun my/fix-missing-dependencies ()
