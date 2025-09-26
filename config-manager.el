@@ -19,7 +19,7 @@
     
     (core
      :path "core/"
-     :modules ("performance" "package" "error-handling" "fix-missing-packages")
+     :modules ("performance" "package" "error-handling")
      :priority 2
      :required t
      :dependencies (foundation))

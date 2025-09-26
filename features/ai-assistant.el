@@ -38,9 +38,6 @@
           ellama-api-base "http://localhost:11434")))
 
 ;; ==================== 功能函数 ====================
-(defvar ai-assistant/sessions-history '()
-  "AI 助手会话历史记录")
-
 (defun ai-assistant/switch-provider (provider)
   "切换 AI 提供商"
   (interactive (list (completing-read "选择 AI 提供商: " '("deepseek" "openai" "local"))))
@@ -81,7 +78,6 @@
           (insert "提示: 选择代码后使用相应的 AI 功能\n")
           (setq buffer-read-only t)
           (goto-char (point-min)))
-        (add-to-list 'ai-assistant/sessions-history session-name)
         (message "AI 助手会话已启动: %s" session-name)))
     (switch-to-buffer buffer-name)))
 

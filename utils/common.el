@@ -46,22 +46,9 @@
       (message "✓ 模块 %s 可用" module-name)
       t))))
 
-;; ==================== 错误处理 ====================
-(defun my/safe-execute (func &optional fallback-func error-message)
-  "安全执行函数，失败时执行备用函数"
-  (condition-case err
-      (funcall func)
-    (error 
-     (my/log-message 'error (or error-message "函数执行失败") (error-message-string err))
-     (when fallback-func
-       (condition-case fallback-err
-           (funcall fallback-func)
-         (error (my/log-message 'error "备用函数也失败" (error-message-string fallback-err))))))))
-
 ;; ==================== 配置常量 ====================
 (defconst my/config-paths
-  '(:modules "~/.spacemacs.d/modules/"
-    :core "~/.spacemacs.d/core/"
+  '(:core "~/.spacemacs.d/core/"
     :features "~/.spacemacs.d/features/"
     :system "~/.spacemacs.d/system/"
     :utils "~/.spacemacs.d/utils/"
@@ -79,6 +66,54 @@
   (unless (file-exists-p path)
     (make-directory path t)
     (message "✓ 创建目录: %s" path)))
+
+;; ==================== 统一错误处理 ====================
+(defun my/safe-execute (func &optional fallback-func error-message)
+  "安全执行函数，失败时执行备用函数"
+  (condition-case err
+      (funcall func)
+    (error 
+     (my/log-message 'error (or error-message "函数执行失败") (error-message-string err))
+     (when fallback-func
+       (condition-case fallback-err
+           (funcall fallback-func)
+         (error (my/log-message 'error "备用函数也失败" (error-message-string fallback-err))))))))
+
+(defun my/safe-execute-with-retry (func retry-count &optional delay)
+  "带重试机制的安全函数执行"
+  (let ((retries (or retry-count 3))
+        (delay-time (or delay 1))
+        (success nil))
+    (while (and (> retries 0) (not success))
+      (condition-case err
+          (progn
+            (funcall func)
+            (setq success t))
+        (error
+         (my/log-message 'warning (format "函数执行失败，剩余重试: %d" retries)
+                         (error-message-string err))
+         (setq retries (1- retries))
+         (when (> retries 0)
+           (sleep-for delay-time)))))
+    success))
+
+(defun my/safe-require (package &optional noerror)
+  "安全加载包，记录加载错误"
+  (condition-case err
+      (require package nil noerror)
+    (error 
+     (my/log-message 'error (format "包加载失败: %s" package) (error-message-string err))
+     (unless noerror
+       (signal (car err) (cdr err))))))
+
+(defun my/safe-load-file (file-path &optional noerror)
+  "安全加载文件，记录加载错误"
+  (condition-case err
+      (load-file file-path)
+    (error 
+     (my/log-message 'error (format "文件加载失败: %s" file-path) (error-message-string err))
+     (unless noerror
+       (signal (car err) (cdr err))))))
 
 ;; ==================== 日志工具 ====================
 (defun my/log-message (level message &optional data)

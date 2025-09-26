@@ -2,7 +2,7 @@
  * @Author: xuzhifeng xuzhifeng@hellogroup.com
  * @Date: 2025-09-22 11:20:13
  * @LastEditors: xuzhifeng xuzhifeng@hellogroup.com
- * @LastEditTime: 2025-09-23 11:10:34
+ * @LastEditTime: 2025-09-26 15:19:13
  * @FilePath: /.spacemacs.d/core/package.el
  * @Description: 这是默认设置,请设置`customMade`, 打开koroFileHeader查看配置 进行设置: https://github.com/OBKoro1/koro1FileHeader/wiki/%E9%85%8D%E7%BD%AE
  */
@@ -43,41 +43,48 @@
         url-keepalive t))
 
 ;; ==================== 智能包安装 ====================
-(defun my/smart-package-install (package &optional retry-count)
-  "智能包安装，自动选择最佳镜像源"
+(defun my/smart-package-install (package &optional version retry-count)
+  "智能包安装，支持版本指定和重试机制"
   (let ((retries (or retry-count 3))
-        (success nil))
+        (success nil)
+        (package-name (if version 
+                          (intern (concat (symbol-name package) "-" version))
+                        package)))
     (while (and (> retries 0) (not success))
       (condition-case err
           (progn
-            (package-install package)
+            (package-install package-name)
             (setq success t)
-            (message "✓ 包 %s 安装成功" package))
+            (message "✓ 包 %s 安装成功" package-name))
         (error
-         (message "✗ 包 %s 安装失败: %s" package (error-message-string err))
+         (message "✗ 包 %s 安装失败: %s" package-name (error-message-string err))
          (setq retries (1- retries))
          (when (> retries 0) (sleep-for 2)))))
     success))
 
-(defun my/smart-package-install-with-version (package version &optional retry-count)
-  "智能包安装，指定版本"
-  (let ((retries (or retry-count 3))
-        (success nil))
-    (while (and (> retries 0) (not success))
-      (condition-case err
-          (progn
-            (package-install (intern (concat (symbol-name package) "-" version)))
-            (setq success t)
-            (message "✓ 包 %s-%s 安装成功" package version))
-        (error
-         (message "✗ 包 %s-%s 安装失败: %s" package version (error-message-string err))
-         (setq retries (1- retries))
-         (when (> retries 0) (sleep-for 2)))))
-    success))
+;; ==================== 包修复功能 ====================
+(defun my/fix-missing-packages ()
+  "修复所有缺失的包"
+  (interactive)
+  (message "开始修复缺失的包...")
+  
+  ;; 设置包源
+  (my/setup-package-archives)
+  
+  ;; 刷新包列表
+  (when (not package-archive-contents)
+    (package-refresh-contents))
+  
+  ;; 修复关键包
+  (my/fix-critical-packages)
+  
+  ;; 修复LSP相关包
+  (my/fix-lsp-packages)
+  
+  (message "✓ 包修复完成！请重启 Emacs 以应用更改"))
 
-;; ==================== 包版本兼容性处理 ====================
-(defun my/fix-package-version-compatibility ()
-  "修复包版本兼容性问题"
+(defun my/fix-critical-packages ()
+  "修复关键包"
   (let ((critical-packages '((spinner . "1.7.2")
                              (auctex . "11.87")
                              (mathjax . "0.1"))))
@@ -85,40 +92,14 @@
       (let ((pkg (car pkg-spec))
             (version (cdr pkg-spec)))
         (when (not (package-installed-p pkg))
-          (my/smart-package-install-with-version pkg version))))))
+          (my/smart-package-install pkg version))))))
 
-;; ==================== 依赖包修复 ====================
-(defun my/fix-missing-dependencies ()
-  "修复缺失的依赖包"
-  (my/fix-package-version-compatibility)
-  (let ((other-packages '(lsp-mode lsp-ui company)))
-    (dolist (pkg other-packages)
+(defun my/fix-lsp-packages ()
+  "修复LSP相关包"
+  (let ((lsp-packages '(lsp-mode lsp-ui company)))
+    (dolist (pkg lsp-packages)
       (when (not (package-installed-p pkg))
-        (my/smart-package-install (symbol-name pkg))))))
-
-;; ==================== 包安装策略 ====================
-(defun my/smart-package-install-strategy ()
-  "智能包安装策略"
-  (condition-case err
-      (progn
-        (my/setup-package-archives)
-        (my/optimize-network-settings)
-        (package-initialize)
-        (when (not package-archive-contents)
-          (package-refresh-contents))
-        (my/fix-missing-dependencies))
-    (error
-     (message "包安装策略执行失败: %s" (error-message-string err)))))
-
-;; ==================== 启动时包初始化 ====================
-(defun my/init-package-on-startup ()
-  "启动时初始化包管理器"
-  (message "初始化包管理器...")
-  (my/setup-package-archives)
-  (my/optimize-network-settings)
-  (when (not package-archive-contents)
-    (package-refresh-contents))
-  (message "✓ 包管理器初始化完成"))
+        (my/smart-package-install pkg)))))
 
 ;; ==================== 包管理工具 ====================
 (defun my/force-refresh-packages ()
@@ -130,9 +111,9 @@
   (package-refresh-contents)
   (message "✓ 包列表刷新完成"))
 
-;; ==================== 包清理和重置 ====================
 (defun my/clean-package-cache ()
   "清理包缓存"
+  (interactive)
   (let ((cache-dir (expand-file-name "elpa" user-emacs-directory)))
     (when (file-exists-p cache-dir)
       (delete-directory cache-dir t)
@@ -140,24 +121,28 @@
 
 (defun my/reset-package-archives ()
   "重置包源"
+  (interactive)
   (setq package-archives nil
         package-archive-contents nil)
-  (my/setup-package-archives))
+  (my/setup-package-archives)
+  (message "✓ 包源已重置"))
 
 ;; ==================== 初始化 ====================
 (defun my/init-package ()
   "初始化包管理模块"
-  (my/smart-package-install-strategy))
+  (message "初始化包管理器...")
+  (my/setup-package-archives)
+  (my/optimize-network-settings)
+  (when (not package-archive-contents)
+    (package-refresh-contents))
+  (message "✓ 包管理器初始化完成"))
 
 ;; 立即应用包源配置
 (my/setup-package-archives)
 (my/optimize-network-settings)
 
 ;; 延迟初始化（避免与 Spacemacs 初始化冲突）
-(run-with-timer 2 nil #'my/init-package-on-startup)
-
-;; 立即初始化
-(my/init-package)
+(run-with-timer 2 nil #'my/init-package)
 
 (provide 'package)
 ;;; package.el ends here
