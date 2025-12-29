@@ -1,6 +1,27 @@
 ;;; performance.el --- 统一性能优化模块 -*- lexical-binding: t; -*-
 ;; Author: xuzhifeng
 ;; Created: 2024
+;; Description: 提供全面的性能优化、监控和诊断功能
+
+;; ==================== 常量定义 ====================
+(defconst my/gc-cons-threshold-normal 16777216
+  "正常 GC 阈值 (16MB)")
+
+(defconst my/gc-cons-threshold-high 268435456
+  "高性能 GC 阈值 (256MB)")
+
+(defconst my/gc-cons-threshold-startup 134217728
+  "启动时 GC 阈值 (128MB)")
+
+(defconst my/large-file-threshold (* 100 1024 1024)
+  "大文件警告阈值 (100MB)")
+
+;; ==================== 变量定义 ====================
+(defvar my/startup-start-time nil
+  "启动开始时间")
+
+(defvar my/performance-mode 'normal
+  "性能模式: normal, high-performance, conservative")
 
 ;; ==================== 启动优化 ====================
 (defun my/optimize-startup ()
@@ -45,30 +66,48 @@
         font-lock-verbose nil))
 
 ;; ==================== GC 优化 ====================
-(defun my/optimize-gc ()
-  "优化垃圾回收性能"
-  (setq gc-cons-threshold 268435456  ; 256MB (增加阈值减少GC频率)
-        gc-cons-percentage 0.8       ; 增加百分比
-        garbage-collection-messages t ; 显示GC消息
-        gc-cons-threshold-most-positive-fixnum 134217728))
+(defun my/optimize-gc (&optional mode)
+  "优化垃圾回收性能
+参数:
+  MODE - 性能模式: normal, high-performance, conservative"
+  (let ((mode (or mode my/performance-mode)))
+    (pcase mode
+      ('high-performance
+       (setq gc-cons-threshold my/gc-cons-threshold-high
+             gc-cons-percentage 0.8)
+       (message "GC 设置为高性能模式: %dMB" (/ my/gc-cons-threshold-high 1048576)))
+      ('conservative
+       (setq gc-cons-threshold my/gc-cons-threshold-normal
+             gc-cons-percentage 0.1)
+       (message "GC 设置为保守模式: %dMB" (/ my/gc-cons-threshold-normal 1048576)))
+      (_
+       (setq gc-cons-threshold my/gc-cons-threshold-startup
+             gc-cons-percentage 0.5)
+       (message "GC 设置为正常模式: %dMB" (/ my/gc-cons-threshold-startup 1048576))))
+    
+    ;; 设置 GC 消息显示
+    (setq garbage-collection-messages (eq mode 'conservative))))
 
 (defun my/restore-gc ()
   "恢复正常垃圾回收设置"
-  (setq gc-cons-threshold 16777216  ; 16MB
+  (setq gc-cons-threshold my/gc-cons-threshold-normal
         gc-cons-percentage 0.1
-        garbage-collection-messages nil))
+        garbage-collection-messages nil)
+  (message "GC 已恢复到正常设置: %dMB" (/ my/gc-cons-threshold-normal 1048576)))
 
 ;; ==================== 内存优化 ====================
 (defun my/optimize-memory ()
-  "优化内存使用"
-  (setq memory-limit 4294967296  ; 4GB 内存限制
-        large-file-warning-threshold 100000000  ; 100MB
-        ;; 优化字符串处理
-        string-optimize t
-        ;; 优化列表处理
-        list-optimize t
-        ;; 减少内存碎片
-        memory-limit 4294967296))
+  "优化内存使用策略"
+  (when (>= emacs-major-version 27)
+    (setq memory-limit 4294967296          ; 4GB 内存限制
+          large-file-warning-threshold my/large-file-threshold
+          warning-minimum-level :error))   ; 减少警告输出
+  
+  ;; 优化字符串和列表处理（仅在支持的版本中）
+  (when (boundp 'string-chasing-threshold)
+    (setq string-chasing-threshold (* 8 1024 1024)))  ; 8MB
+  
+  (message "✓ 内存优化已应用"))
 
 ;; ==================== 文件处理优化 ====================
 (defun my/optimize-file-handling ()
@@ -113,166 +152,125 @@
         display-line-numbers-widen t))
 
 ;; ==================== 系统性能监控 ====================
-(defvar my/startup-start-time nil
-  "启动开始时间")
-
 (defun my/performance-monitor ()
-  "性能监控函数"
+  "性能监控函数，记录启动时间"
   (setq my/startup-start-time (float-time))
   (run-with-timer 5 nil
                  (lambda ()
                    (let ((load-time (- (float-time) my/startup-start-time)))
-                     (message "Emacs 启动时间: %.2f 秒" load-time)))))
+                     (message "✓ Emacs 启动时间: %.2f 秒" load-time)
+                     (when (require 'error-handling nil t)
+                       (my/log-info "Emacs 启动完成" 
+                                   (format "时间: %.2f 秒" load-time)))))))
 
-(defun my/monitor-system-performance ()
-  "监控系统性能"
+(defun my/get-system-info ()
+  "获取系统信息"
+  (list :emacs-version emacs-version
+        :system-type system-type
+        :system-name (system-name)
+        :gc-threshold gc-cons-threshold
+        :features-count (length features)
+        :process-output-max read-process-output-max))
+
+(defun my/display-system-info ()
+  "显示系统信息"
   (interactive)
-  (message "监控系统性能...")
-  
-  ;; 检查CPU使用率
-  (let ((cpu-usage (my/get-cpu-usage)))
-    (message "CPU使用率: %s%%" cpu-usage)
-    (when (> cpu-usage 80)
-      (message "⚠ 警告: CPU使用率过高 (%s%%)" cpu-usage)))
-  
-  ;; 检查内存使用
-  (let ((memory-usage (my/get-memory-usage)))
-    (message "内存使用: %s MB" memory-usage)
-    (when (> memory-usage 8000)
-      (message "⚠ 警告: 内存使用过高 (%s MB)" memory-usage))))
-
-(defun my/get-cpu-usage ()
-  "获取CPU使用率"
-  (condition-case nil
-      (let ((output (shell-command-to-string "top -l 1 | grep 'CPU usage' | awk '{print $3}' | sed 's/%//'")))
-        (string-to-number (string-trim output)))
-    (error 0)))
-
-(defun my/get-memory-usage ()
-  "获取内存使用量(MB)"
-  (condition-case nil
-      (let ((output (shell-command-to-string "vm_stat | grep 'Pages active' | awk '{print $3}' | sed 's/\\.//'")))
-        (* (string-to-number (string-trim output)) 4096 0.000001))
-    (error 0)))
+  (let ((info (my/get-system-info)))
+    (message "系统信息: Emacs %s, %s, GC: %dMB, 已加载特性: %d"
+             (plist-get info :emacs-version)
+             (plist-get info :system-type)
+             (/ (plist-get info :gc-threshold) 1048576)
+             (plist-get info :features-count))))
 
 ;; ==================== 性能诊断 ====================
-(defun my/diagnose-performance-issues ()
-  "诊断性能问题"
+(defun my/diagnose-performance ()
+  "诊断性能问题并给出建议"
   (interactive)
   (message "诊断性能问题...")
   
-  (let ((issues '()))
+  (let ((issues '())
+        (suggestions '()))
     
-    ;; 检查CPU使用率
-    (let ((cpu-usage (my/get-cpu-usage)))
-      (when (> cpu-usage 80)
-        (push (format "CPU使用率过高: %s%%" cpu-usage) issues)))
+    ;; 检查 GC 设置
+    (when (< gc-cons-threshold 8000000)
+      (push "GC 阈值过低，可能导致频繁垃圾回收" issues)
+      (push "运行 (my/optimize-gc 'high-performance) 提升性能" suggestions))
     
-    ;; 检查内存使用
-    (let ((memory-usage (my/get-memory-usage)))
-      (when (> memory-usage 8000)
-        (push (format "内存使用过高: %s MB" memory-usage) issues)))
+    ;; 检查进程输出缓冲区
+    (when (< read-process-output-max 1048576)
+      (push "进程输出缓冲区较小，可能影响 LSP 性能" issues)
+      (push "增加 read-process-output-max 到至少 1MB" suggestions))
+    
+    ;; 检查已加载特性数量
+    (when (> (length features) 500)
+      (push (format "已加载 %d 个特性，可能影响启动速度" (length features)) issues)
+      (push "考虑使用延迟加载或减少不必要的包" suggestions))
     
     ;; 显示结果
     (if issues
         (progn
-          (message "发现 %d 个性能问题:" (length issues))
+          (message "发现 %d 个潜在问题:" (length issues))
           (dolist (issue issues)
             (message "  ⚠ %s" issue))
-          (message "运行 M-x my/optimize-emacs-performance 来优化"))
-      (message "✓ 未发现性能问题"))))
+          (message "\n建议:")
+          (dolist (suggestion suggestions)
+            (message "  → %s" suggestion)))
+      (message "✓ 未发现明显性能问题"))))
 
 ;; ==================== 自动优化 ====================
-(defun my/auto-optimize-performance ()
-  "自动性能优化"
-  (interactive)
-  (message "自动性能优化...")
-  
-  ;; 检查性能问题
-  (my/diagnose-performance-issues)
-  
-  ;; 优化Emacs
-  (my/optimize-emacs-performance)
-  
-  (message "✓ 自动性能优化完成"))
-
 (defun my/optimize-emacs-performance ()
-  "优化Emacs性能"
+  "一键优化 Emacs 性能"
   (interactive)
-  (message "优化Emacs性能...")
+  (message "开始优化 Emacs 性能...")
   
-  ;; 垃圾回收优化
-  (setq gc-cons-threshold 268435456)  ; 256MB
-  (setq gc-cons-percentage 0.8)
+  ;; 优化 GC
+  (my/optimize-gc 'high-performance)
   
-  ;; 减少自动保存频率
-  (setq auto-save-interval 300)  ; 5分钟
-  (setq auto-save-timeout 30)    ; 30秒
+  ;; 优化文件处理
+  (setq read-process-output-max 6291456  ; 6MB
+        create-lockfiles nil
+        make-backup-files nil
+        auto-save-default nil)
   
-  ;; 优化字体渲染
-  (setq inhibit-compacting-font-caches t)
-  
-  ;; 减少不必要的钩子
-  (remove-hook 'after-save-hook 'executable-make-buffer-file-executable-if-script-p)
-  
-  ;; 优化LSP性能
+  ;; 优化 LSP 性能
   (when (boundp 'lsp-idle-delay)
-    (setq lsp-idle-delay 0.3))  ; 减少延迟
+    (setq lsp-idle-delay 0.3
+          lsp-log-io nil))
   
-  (when (boundp 'lsp-log-io)
-    (setq lsp-log-io nil))
-  
-  ;; 优化Company补全
+  ;; 优化 Company 补全
   (when (boundp 'company-idle-delay)
-    (setq company-idle-delay 0.3))
+    (setq company-idle-delay 0.2))
   
-  ;; 优化Helm性能
-  (when (boundp 'helm-candidate-number-limit)
-    (setq helm-candidate-number-limit 100))
-  
-  ;; 优化Ivy性能
-  (when (boundp 'ivy-height)
-    (setq ivy-height 15))
-  
-  ;; 优化Magit性能
-  (when (boundp 'magit-refresh-status-buffer)
-    (setq magit-refresh-status-buffer nil))
-  
-  ;; 优化Tramp性能
+  ;; 优化 Tramp 性能
   (when (boundp 'tramp-verbose)
-    (setq tramp-verbose 0))
+    (setq tramp-verbose 1))
   
-  (message "✓ Emacs性能优化完成"))
+  (message "✓ Emacs 性能优化完成")
+  (my/diagnose-performance))
 
 ;; ==================== 高级性能优化 ====================
 (defun my/advanced-performance-optimization ()
-  "高级性能优化"
+  "高级性能优化，针对原生编译等高级特性"
   (interactive)
   (message "执行高级性能优化...")
   
-  ;; 优化原生编译
-  (when (fboundp 'native-compile-async)
+  ;; 优化原生编译（Emacs 28+）
+  (when (and (fboundp 'native-comp-available-p) (native-comp-available-p))
     (setq native-comp-async-report-warnings-errors nil
           native-comp-deferred-compilation t
-          native-comp-jit-compilation t
-          native-comp-speed 2))
+          native-comp-speed 2)
+    (message "✓ 原生编译优化已启用"))
   
   ;; 优化字节编译
-  (setq byte-compile-warnings '(not free-vars unresolved))
+  (setq byte-compile-warnings '(not free-vars unresolved noruntime))
   
   ;; 优化正则表达式
-  (setq regexp-opt-depth-limit 2000
-        regexp-opt-char-fold-limit 2000)
-  
-  ;; 优化搜索性能
-  (setq search-whitespace-regexp "\\s-+"
-        search-default-regexp nil)
-  
-  ;; 优化缩进性能
-  (setq indent-line-function 'indent-relative-maybe)
+  (when (boundp 'regexp-opt-depth-limit)
+    (setq regexp-opt-depth-limit 2000))
   
   ;; 优化语法高亮
-  (setq font-lock-maximum-size 1048576)  ; 1MB
+  (setq font-lock-maximum-size 1048576  ; 1MB
+        font-lock-support-mode 'jit-lock-mode)
   
   (message "✓ 高级性能优化完成"))
 
@@ -282,34 +280,74 @@
   (interactive)
   (message "开始性能基准测试...")
   
-  (let ((start-time (float-time)))
+  (let ((results '()))
     ;; 测试启动时间
-    (let ((load-time (- (float-time) start-time)))
-      (message "启动时间: %.3f 秒" load-time))
+    (when my/startup-start-time
+      (let ((startup-time (- (float-time) my/startup-start-time)))
+        (push (format "启动时间: %.3f 秒" startup-time) results)))
     
-    ;; 测试内存使用
-    (let ((memory-usage (my/get-memory-usage)))
-      (message "内存使用: %.1f MB" memory-usage))
-    
-    ;; 测试GC性能
+    ;; 测试 GC 性能
     (let ((gc-start (float-time)))
       (garbage-collect)
       (let ((gc-time (- (float-time) gc-start)))
-        (message "GC时间: %.3f 秒" gc-time)))
+        (push (format "GC 时间: %.3f 秒" gc-time) results)))
     
-    (message "✓ 性能基准测试完成")))
+    ;; 显示系统信息
+    (let ((info (my/get-system-info)))
+      (push (format "GC 阈值: %dMB" (/ (plist-get info :gc-threshold) 1048576)) results)
+      (push (format "已加载特性: %d" (plist-get info :features-count)) results))
+    
+    ;; 输出结果
+    (message "\n========== 性能基准测试结果 ==========")
+    (dolist (result (reverse results))
+      (message "  %s" result))
+    (message "=====================================\n")
+    
+    results))
+
+;; ==================== 性能模式切换 ====================
+(defun my/switch-performance-mode (mode)
+  "切换性能模式
+参数:
+  MODE - 性能模式: normal, high-performance, conservative"
+  (interactive
+   (list (intern (completing-read "选择性能模式: "
+                                   '("normal" "high-performance" "conservative")
+                                   nil t))))
+  (setq my/performance-mode mode)
+  (my/optimize-gc mode)
+  (message "✓ 已切换到 %s 性能模式" mode))
 
 ;; ==================== 初始化 ====================
 (defun my/init-performance ()
   "初始化性能模块"
+  (message "初始化性能模块...")
+  
+  ;; 应用启动优化
   (my/optimize-startup)
+  
+  ;; 应用文件处理优化
   (my/optimize-file-handling)
-  (my/optimize-gc)
+  
+  ;; 应用 GC 优化（启动模式）
+  (my/optimize-gc 'normal)
+  
+  ;; 应用内存优化
   (my/optimize-memory)
+  
+  ;; 应用渲染优化
   (my/optimize-rendering)
+  
+  ;; 启动后恢复正常 GC 设置
   (add-hook 'emacs-startup-hook #'my/restore-gc)
+  
+  ;; 启动性能监控
   (add-hook 'emacs-startup-hook #'my/performance-monitor)
-  (add-hook 'emacs-startup-hook #'my/advanced-performance-optimization))
+  
+  ;; 延迟执行高级优化
+  (add-hook 'emacs-startup-hook #'my/advanced-performance-optimization)
+  
+  (message "✓ 性能模块初始化完成"))
 
 ;; 立即初始化
 (my/init-performance)
