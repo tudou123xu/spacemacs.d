@@ -256,9 +256,11 @@
   
   ;; 优化原生编译（Emacs 28+）
   (when (and (fboundp 'native-comp-available-p) (native-comp-available-p))
+    (my/fix-native-compilation)
     (setq native-comp-async-report-warnings-errors nil
           native-comp-deferred-compilation t
-          native-comp-speed 2)
+          native-comp-speed 2
+          native-comp-warning-on-missing-source nil)
     (message "✓ 原生编译优化已启用"))
   
   ;; 优化字节编译
@@ -273,6 +275,49 @@
         font-lock-support-mode 'jit-lock-mode)
   
   (message "✓ 高级性能优化完成"))
+
+;; ==================== 原生编译修复 ====================
+(defun my/fix-native-compilation ()
+  "修复原生编译的临时目录问题"
+  (interactive)
+  (when (and (fboundp 'native-comp-available-p)
+             (native-comp-available-p))
+    
+    (message "修复原生编译配置...")
+    
+    ;; 设置原生编译缓存路径
+    (let ((eln-cache-dir (expand-file-name "eln-cache" user-emacs-directory)))
+      (unless (file-exists-p eln-cache-dir)
+        (make-directory eln-cache-dir t)
+        (message "✓ 创建 eln-cache 目录: %s" eln-cache-dir))
+      
+      (setq native-comp-eln-load-path (list eln-cache-dir)))
+    
+    ;; 设置临时目录
+    (let ((temp-dir (expand-file-name "tmp/" user-emacs-directory)))
+      (unless (file-exists-p temp-dir)
+        (make-directory temp-dir t)
+        (message "✓ 创建临时目录: %s" temp-dir))
+      
+      ;; 设置原生编译使用的临时目录
+      (setq native-comp-async-env-modifier-form
+            `(setq temporary-file-directory ,temp-dir)))
+    
+    ;; 禁用警告和错误报告
+    (setq native-comp-async-report-warnings-errors nil
+          native-comp-warning-on-missing-source nil)
+    
+    (message "✓ 原生编译配置已修复")))
+
+(defun my/disable-native-compilation ()
+  "完全禁用原生编译（如果遇到问题）"
+  (interactive)
+  (when (fboundp 'native-comp-available-p)
+    (setq native-comp-deferred-compilation nil
+          native-comp-jit-compilation nil
+          native-comp-async-report-warnings-errors nil
+          comp-deferred-compilation nil)
+    (message "✓ 原生编译已禁用")))
 
 ;; ==================== 性能基准测试 ====================
 (defun my/performance-benchmark ()

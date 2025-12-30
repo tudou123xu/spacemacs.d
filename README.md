@@ -434,7 +434,26 @@ M-x my/generate-audit-report
 
 ### 常见问题
 
-#### 1. 启动缓慢
+#### 1. 原生编译临时目录错误
+**错误信息**: `Error muted by safe_call: (apply native--compile-async ...) signaled (file-missing "Creating file with prefix" "No such file or directory" "/var/folders/.../T/emacs-async-comp-...")`
+
+**原因**: 原生编译的临时目录创建失败
+
+**解决方案**:
+```elisp
+;; 方案1: 修复原生编译配置（推荐）
+M-x my/fix-native-compilation
+
+;; 方案2: 如果仍有问题，完全禁用原生编译
+M-x my/disable-native-compilation
+
+;; 方案3: 重启 Emacs（已自动应用修复）
+;; 直接重启 Emacs，配置已在 early-init.el 中修复
+```
+
+**说明**: v3.0 版本已在 `early-init.el` 中自动修复此问题，会自动创建所需目录并设置正确的临时目录路径。
+
+#### 2. 启动缓慢
 **原因**: 网络连接问题、包下载慢
 **解决方案**:
 ```elisp
@@ -448,7 +467,7 @@ M-x my/force-refresh-packages
 M-x my/switch-performance-mode  ; 选择 high-performance
 ```
 
-#### 2. 模块加载失败
+#### 3. 模块加载失败
 **原因**: 模块依赖问题、文件缺失
 **解决方案**:
 ```elisp
@@ -462,7 +481,7 @@ M-x my/validate-configuration
 M-x my/load-all-layers
 ```
 
-#### 3. 包安装失败
+#### 4. 包安装失败
 **原因**: 网络问题、版本冲突
 **解决方案**:
 ```elisp
@@ -476,7 +495,7 @@ M-x my/clean-package-cache
 M-x my/reset-package-archives
 ```
 
-#### 4. 性能下降
+#### 5. 性能下降
 **原因**: 资源占用过高、配置不当
 **解决方案**:
 ```elisp
@@ -498,6 +517,16 @@ M-x my/performance-benchmark
 | 审计日志 | `logs/config-audit.log` | 配置文件变更记录 |
 | 错误报告 | `logs/error-report.txt` | 详细的错误报告 |
 | 审计报告 | `logs/audit-report.txt` | 安全审计报告 |
+
+### 快速修复脚本
+
+```bash
+# 修复原生编译问题
+~/.spacemacs.d/scripts/fix-native-comp.sh
+
+# 安全启动（禁用原生编译）
+~/.spacemacs.d/scripts/emacs-safe.sh
+```
 
 ### 诊断命令
 
