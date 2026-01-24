@@ -180,6 +180,8 @@ It should only modify the values of Spacemacs settings."
    ;; ==================== 兼容性修复 ====================
    ;; 修复 "Symbol's value as variable is void: shell-enable-vterm-support"
    shell-enable-vterm-support t
+   shell-default-full-span nil
+   shell-protect-eshell-prompt nil
 
    ;; ==================== 原生编译路径修复 ====================
    ;; 确保 Homebrew 路径在 exec-path 中，否则 Native Comp 找不到 gcc
@@ -664,6 +666,22 @@ If you are unsure, try setting them in `dotspacemacs/user-config' first."
 
   ;; 环境变量和原生编译配置已在 early-init.el 中处理
   ;; 包源配置已移至 core/package.el 中统一管理
+
+  ;; ==================== 临时修复 Spacemacs 核心缺失函数 ====================
+  
+  ;; 修复 shell layer 缺失的宏 make-shell-pop-command
+  (defmacro make-shell-pop-command (func &optional shell shell-term-shell)
+    (let* ((name (if (stringp func) func (symbol-name func)))
+           (func-name (intern (format "spacemacs/shell-pop-%s" name))))
+      `(defun ,func-name (index)
+         (interactive "P")
+         (require 'shell-pop)
+         (shell-pop--set-shell-type ,name ,shell ,shell-term-shell)
+         (shell-pop index))))
+
+  ;; 修复 org layer 缺失函数
+  (unless (fboundp 'org-clocks-prefix)
+    (defun org-clocks-prefix (&rest args) nil))
 
   )
 
