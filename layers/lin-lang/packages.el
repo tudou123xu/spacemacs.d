@@ -18,10 +18,8 @@
     )
   "The list of Lisp packages required by the lin-lang layer.")
 
-(defun lin-lang/init-org ()
-  (use-package org
-    :defer 2
-    :config
+(defun lin-lang/post-init-org ()
+  (with-eval-after-load 'org
     (progn
       ;; Safe execution policy
       (setq org-confirm-babel-evaluate
