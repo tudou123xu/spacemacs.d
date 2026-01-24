@@ -6,6 +6,18 @@
 (setenv "LANG" "en_US.UTF-8")
 (setenv "LC_ALL" "en_US.UTF-8")
 
+;; 确保 Homebrew 路径在 exec-path 中，否则 Native Comp 找不到 gcc
+(when (eq system-type 'darwin)
+  (let ((brew-bin "/opt/homebrew/bin"))
+    (when (file-directory-p brew-bin)
+      (add-to-list 'exec-path brew-bin)
+      (setenv "PATH" (concat brew-bin ":" (getenv "PATH"))))))
+
+;; ==================== 兼容性修复 ====================
+;; 修复 "Symbol's value as variable is void: shell-enable-vterm-support"
+(defvar shell-enable-vterm-support t "Enable vterm support for shell layer.")
+
+
 ;; ==================== 垃圾回收 (GC) 优化 ====================
 ;; 在启动阶段将 GC 阈值设置为极大值 (1GB)，避免启动过程中频繁 GC
 (setq gc-cons-threshold (* 1024 1024 1024))
