@@ -177,6 +177,29 @@ It should only modify the values of Spacemacs settings."
   ;; This setq-default sexp is an exhaustive list of all the supported
   ;; spacemacs settings.
   (setq-default
+   ;; ==================== 兼容性修复 ====================
+   ;; 修复 "Symbol's value as variable is void: shell-enable-vterm-support"
+   shell-enable-vterm-support t
+
+   ;; ==================== 原生编译路径修复 ====================
+   ;; 确保 Homebrew 路径在 exec-path 中，否则 Native Comp 找不到 gcc
+   exec-path (if (eq system-type 'darwin)
+                 (let ((brew-bin "/opt/homebrew/bin"))
+                   (if (file-directory-p brew-bin)
+                       (append (list brew-bin) exec-path)
+                     exec-path))
+               exec-path)
+   
+   ;; 自动配置 Native Comp 驱动选项
+   native-comp-driver-options (if (eq system-type 'darwin)
+                                  (let ((gcc-path (or (executable-find "gcc-14")
+                                                      (executable-find "gcc-13")
+                                                      (executable-find "gcc-12"))))
+                                    (if gcc-path
+                                        (list (concat "-B" (file-name-directory gcc-path)))
+                                      nil))
+                                nil)
+
    ;; If non-nil then enable support for the portable dumper. You'll need to
    ;; compile Emacs 27 from source following the instructions in file
    ;; EXPERIMENTAL.org at to root of the git repository.
