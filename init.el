@@ -210,7 +210,7 @@ It should only modify the values of Spacemacs settings."
 
    ;; Maximum allowed time in seconds to contact an ELPA repository.
    ;; (default 5)
-   dotspacemacs-elpa-timeout 5
+   dotspacemacs-elpa-timeout 60
 
    ;; GC 优化：启动时使用更大的阈值，然后在模块加载中恢复
    dotspacemacs-gc-cons '(134217728 0.1)  ; 128MB
@@ -429,7 +429,7 @@ It should only modify the values of Spacemacs settings."
    ;; If non-nil a progress bar is displayed when spacemacs is loading. This
    ;; may increase the boot time on some systems and emacs builds, set it to
    ;; nil to boost the loading time. (default t)
-   dotspacemacs-loading-progress-bar t
+   dotspacemacs-loading-progress-bar nil  ; 禁用进度条提升启动速度
 
    ;; If non-nil the frame is fullscreen when Emacs starts up. (default nil)
    ;; (Emacs 24.4+ only)
@@ -634,6 +634,9 @@ configuration.
 It is mostly for variables that should be set before packages are loaded.
 If you are unsure, try setting them in `dotspacemacs/user-config' first."
 
+  ;; 环境变量和原生编译配置已在 early-init.el 中处理
+  ;; 包源配置已移至 core/package.el 中统一管理
+
   )
 
 
@@ -642,27 +645,8 @@ If you are unsure, try setting them in `dotspacemacs/user-config' first."
 This function is called only while dumping Spacemacs configuration. You can
 `require' or `load' the libraries of your choice that will be included in the
 dump."
-  ;; ==================== 核心路径配置 ====================
-  (add-to-list 'load-path (file-truename "~/.spacemacs.d/"))
-  
-  ;; ==================== 性能优化配置 ====================
-  (setq byte-compile-warnings '(not obsolete)
-        warning-minimum-level :error
-        evil-shift-round nil)
-  
-  ;; ==================== 网络配置 ====================
-  ;; SOCKS 代理配置 (根据需要启用)
-  ;; (setq socks-server '("Default server" "127.0.0.1" 1080 5))
-  
-  ;; ==================== 工具配置 ====================
-  ;; GNU tar 配置 (macOS)
-  (when (spacemacs/system-is-mac)
-    (setq-default quelpa-build-tar-executable 
-                  (or (executable-find "gtar")
-                      (executable-find "/usr/local/bin/gtar")
-                      (executable-find "/opt/homebrew/bin/gtar")
-                      "tar")))
-
+  ;; 核心配置已移至分层配置管理器
+  ;; 包管理器初始化已移至 core/package.el 中统一管理
 
   )
 (defun dotspacemacs/user-config ()
@@ -689,31 +673,31 @@ This function is called at the very end of Spacemacs initialization."
    ;; Your init file should contain only one such instance.
    ;; If there is more than one, they won't work right.
    '(package-selected-packages
-     '(ac-ispell ace-link ace-pinyin aggressive-indent attrap auto-compile
-                 auto-dictionary auto-highlight-symbol auto-yasnippet blacken
-                 browse-at-remote bundler cargo ccls centered-cursor-mode
-                 chinese-conv chruby cider cider-eval-sexp-fu clean-aindent-mode
-                 clojure-snippets cmm-mode code-cells color-identifiers-mode
-                 column-enforce-mode company-anaconda company-auctex
-                 company-c-headers company-cabal company-go company-lua
-                 company-math company-reftex company-restclient company-rtags
-                 company-statistics company-web company-ycmd counsel-css
-                 counsel-projectile cpp-auto-include cuda-mode cython-mode dante
-                 dap-mode deft devdocs diminish dired-quick-sort disaster docker
-                 docker-tramp dockerfile-mode dotenv-mode drag-stuff dumb-jump
-                 editorconfig elisp-def elisp-slime-nav emmet-mode emr engine-mode
-                 esh-help eshell-prompt-extras eshell-z evil-anzu evil-args
-                 evil-cleverparens evil-collection evil-easymotion evil-escape
-                 evil-evilified-state evil-exchange evil-goggles evil-iedit-state
-                 evil-indent-plus evil-lion evil-lisp-state evil-matchit evil-mc
-                 evil-nerd-commenter evil-numbers evil-org evil-surround evil-tex
-                 evil-textobj-line evil-tutor evil-unimpaired
-                 evil-visual-mark-mode evil-visualstar exec-path-from-shell
-                 expand-region eyebrowse fancy-battery feature-mode
-                 find-by-pinyin-dired flx-ido flycheck-elsa flycheck-haskell
-                 flycheck-package flycheck-pos-tip flycheck-rtags flycheck-rust
-                 flycheck-ycmd flyspell-correct-ivy font-lock+ fuzzy gendoxy gh-md
-                 git-gutter-fringe git-link git-messenger git-modes
+     '(ac-ispell ace-link ace-pinyin aggressive-indent aider attrap auctex
+                 auctex-11.87 auto-compile auto-dictionary auto-highlight-symbol
+                 auto-yasnippet blacken browse-at-remote bundler cargo ccls
+                 centered-cursor-mode chinese-conv chruby cider cider-eval-sexp-fu
+                 clean-aindent-mode clojure-snippets cmm-mode code-cells
+                 color-identifiers-mode column-enforce-mode company-anaconda
+                 company-auctex company-c-headers company-cabal company-go
+                 company-lua company-math company-reftex company-restclient
+                 company-rtags company-statistics company-web company-ycmd
+                 counsel-css counsel-projectile cpp-auto-include cuda-mode
+                 cython-mode dante dap-mode deft devdocs diminish dired-quick-sort
+                 disaster docker docker-tramp dockerfile-mode dotenv-mode
+                 drag-stuff dumb-jump editorconfig elisp-def elisp-slime-nav
+                 ellama emmet-mode emr engine-mode esh-help eshell-prompt-extras
+                 eshell-z evil-anzu evil-args evil-cleverparens evil-collection
+                 evil-easymotion evil-escape evil-evilified-state evil-exchange
+                 evil-goggles evil-iedit-state evil-indent-plus evil-lion
+                 evil-lisp-state evil-matchit evil-mc evil-nerd-commenter
+                 evil-numbers evil-org evil-surround evil-tex evil-textobj-line
+                 evil-tutor evil-unimpaired evil-visual-mark-mode evil-visualstar
+                 exec-path-from-shell expand-region eyebrowse fancy-battery
+                 feature-mode find-by-pinyin-dired flx-ido flycheck-elsa
+                 flycheck-haskell flycheck-package flycheck-pos-tip flycheck-rtags
+                 flycheck-rust flycheck-ycmd flyspell-correct-ivy font-lock+ fuzzy
+                 gendoxy gh-md git-gutter-fringe git-link git-messenger git-modes
                  git-timemachine gitignore-templates glsl-mode gnuplot go-eldoc
                  go-fill-struct go-gen-test go-guru go-impl go-rename go-tag
                  godoctor golden-ratio google-c-style google-translate
@@ -724,8 +708,9 @@ This function is called at the very end of Spacemacs initialization."
                  indent-guide info+ inspector ivy-avy ivy-hydra ivy-purpose
                  ivy-rtags ivy-xref ivy-yasnippet js-doc js2-refactor json-mode
                  json-navigator json-reformat launchctl link-hint live-py-mode
-                 livid-mode lorem-ipsum lsp-haskell lsp-ivy lsp-latex lsp-origami
-                 lsp-pyright lsp-python-ms lsp-ui macrostep markdown-toc md-readme
+                 livid-mode lorem-ipsum lsp-haskell lsp-ivy lsp-java lsp-latex
+                 lsp-mode lsp-origami lsp-pyright lsp-python-ms lsp-treemacs
+                 lsp-ui macrostep markdown-toc mathjax mathjax-0.1 md-readme
                  minitest mmm-mode multi-line multi-term multi-vterm mwim nameless
                  nodejs-repl nose nov npm-mode ob-go ob-http ob-restclient
                  open-junk-file opencl-mode org-cliplink org-contrib org-download
@@ -742,10 +727,10 @@ This function is called at the very end of Spacemacs initialization."
                  ruby-test-mode ruby-tools rvm sass-mode scss-mode
                  seeing-is-believing shell-pop slim-mode smeargle smex space-doc
                  spaceline-all-the-icons spacemacs-purpose-popwin
-                 spacemacs-whitespace-cleanup sphinx-doc string-edit-at-point
-                 string-inflection symbol-overlay symon tagedit term-cursor
-                 terminal-here tide toc-org toml-mode treemacs-evil
-                 treemacs-icons-dired treemacs-magit treemacs-persp
+                 spacemacs-whitespace-cleanup sphinx-doc spinner spinner-1.7.2
+                 string-edit-at-point string-inflection symbol-overlay symon
+                 tagedit term-cursor terminal-here tide toc-org toml-mode
+                 treemacs-evil treemacs-icons-dired treemacs-magit treemacs-persp
                  treemacs-projectile undo-tree unfill use-packageuuidgen valign
                  vi-tilde-fringe vim-powerline volatile-highlights web-beautify
                  web-mode wgrep which-key winum writeroom-mode ws-butler

@@ -1,0 +1,60 @@
+;;; lang-support.el --- 编程语言支持模块 -*- lexical-binding: t; -*-
+;; Author: xuzhifeng
+;; Created: 2024
+;; Description: 提供统一的编程语言环境配置，包括 LSP、Python、Go 等
+
+;; ==================== LSP 统一配置 ====================
+(defun my/setup-lsp ()
+  "配置 LSP 服务器通用设置"
+  (when (package-installed-p 'lsp-mode)
+    (setq lsp-idle-delay 0.2
+          lsp-file-watch-threshold 2000
+          lsp-enable-file-watchers t
+          lsp-keymap-prefix "C-c l")
+    (message "✓ LSP 配置已应用")))
+
+;; ==================== Python 配置 ====================
+(defun my/setup-python ()
+  "配置 Python 开发环境"
+  (when (executable-find "python3")
+    (setq python-shell-interpreter "python3"
+          python-shell-prompt-detect-failure-warning nil)
+    (message "✓ Python 环境已配置")))
+
+;; ==================== Go 配置 ====================
+(defun my/setup-go ()
+  "配置 Go 开发环境"
+  (when (executable-find "go")
+    (setq gofmt-command (if (executable-find "goimports") 
+                            "goimports" 
+                          "gofmt")
+          compile-command "go build -v && go test -v")
+    (message "✓ Go 环境已配置")))
+
+;; ==================== JavaScript/TypeScript 配置 ====================
+(defun my/setup-javascript ()
+  "配置 JavaScript/TypeScript 开发环境"
+  (when (or (executable-find "node") (executable-find "nodejs"))
+    (setq js-indent-level 2
+          js2-basic-offset 2
+          typescript-indent-level 2)
+    (message "✓ JavaScript/TypeScript 环境已配置")))
+
+;; ==================== 初始化 ====================
+(defun my/init-lang-support ()
+  "初始化语言支持模块"
+  (message "初始化语言支持模块...")
+  
+  ;; 配置各种语言环境
+  (my/setup-lsp)
+  (my/setup-python)
+  (my/setup-go)
+  (my/setup-javascript)
+  
+  (message "✓ 语言支持模块初始化完成"))
+
+;; 延迟初始化（等待包管理器完成）
+(run-with-timer 3 nil #'my/init-lang-support)
+
+(provide 'lang-support)
+;;; lang-support.el ends here

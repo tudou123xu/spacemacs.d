@@ -1,36 +1,36 @@
-;;; user-config.el --- 模块化用户配置入口 -*- lexical-binding: t; -*-
+;;; user-config.el --- 分层配置入口 -*- lexical-binding: t; -*-
+;; Author: xuzhifeng
+;; Created: 2024
+;; Description: 用户自定义配置的入口文件，加载配置管理器
 
-;; ==================== 配置文件加载器 ====================
-(defvar my/config-modules-path "~/.spacemacs.d/modules/"
-  "用户配置模块目录路径")
+;; ==================== 加载配置管理器 ====================
+(add-to-list 'load-path "~/.spacemacs.d/")
 
-(defun my/load-config-module (module-name)
-  "安全加载配置模块"
-  (let ((module-file (expand-file-name (concat module-name ".el") my/config-modules-path)))
-    (when (file-exists-p module-file)
-      (condition-case err
-          (load-file module-file)
-        (error (message "加载模块 %s 失败: %s" module-name (error-message-string err)))))))
+(when (file-exists-p "~/.spacemacs.d/config-manager.el")
+  (condition-case err
+      (progn
+        (load-file "~/.spacemacs.d/config-manager.el")
+        (message "✓ 分层配置管理器已加载"))
+    (error
+     (message "✗ 分层配置管理器加载失败: %s" (error-message-string err)))))
 
-;; ==================== 核心模块加载 ====================
-(mapc #'my/load-config-module
-      '("core-performance"     ; 性能优化
-        "error-handling"       ; 错误处理和容错
-        "lang-support"         ; 编程语言支持
-        "ui-enhancement"       ; 界面增强
-        "system-integration"   ; 系统集成
-        "security-audit"))     ; 安全审计
+;; ==================== 用户自定义配置区域 ====================
+;; 在此处添加您的个人配置代码
 
-;; ==================== 平台专属配置 ====================
-(when (my/system-is-mac)
-  (my/load-config-module "macos-specific"))
+;; 示例：自定义键绑定
+;; (global-set-key (kbd "C-c C-c") 'comment-region)
 
-(when (my/system-is-windows)
-  (my/load-config-module "windows-specific"))
+;; 示例：自定义变量
+;; (setq custom-variable "custom-value")
 
-;; ==================== 数据库模块加载 ====================
-(add-to-list 'load-path "~/.spacemacs.d/private/db-layer")
-(require 'config)
+;; 示例：自定义函数
+;; (defun my/custom-function ()
+;;   "自定义函数说明"
+;;   (interactive)
+;;   (message "执行自定义功能"))
+
+;; ==================== 配置加载完成 ====================
+(message "✓ 用户配置加载完成")
 
 (provide 'user-config)
 ;;; user-config.el ends here
