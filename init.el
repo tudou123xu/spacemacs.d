@@ -42,13 +42,7 @@ This function should only modify configuration layer settings."
 
      ;; ====================== Original Layers ======================
      auto-completion
-     better-defaults
      helm
-     (lsp :variables
-          lsp-auto-guess-root t
-          lsp-rust-server 'rust-analyzer  ;; 统一LSP配置
-          lsp-ui-doc-enable nil          ;; 禁用悬浮文档提升性能
-          lsp-idle-delay 0.3)            ;; 降低响应延迟
 
      ;; ====================== 编程语言层 ======================
      ;; --- Python增强 ---
@@ -108,13 +102,6 @@ This function should only modify configuration layer settings."
             vterm-max-scrollback 10000)
      aider
 
-     ;; --- 远程开发 ---
-     (tramp :variables
-            tramp-default-method "ssh"
-            tramp-verbose 1  ;; 性能优化：降低日志级别
-            tramp-ssh-controlmaster-options "-o ControlMaster=auto -o ControlPersist=60s -o ConnectTimeout=15"
-            tramp-use-connection-share t)
-
      ;; ====================== 文档与写作 ======================
      (org :variables
           org-enable-roam-support t
@@ -128,7 +115,6 @@ This function should only modify configuration layer settings."
      (osx :variables
           osx-dictionary-dictionary-choice "Simplified Chinese - English"
           osx-command-as 'super)
-     docker
      (search-engine :variables  ;; 新增：修复搜索功能
                     search-engine-default-backend 'rg
                     search-engine-rg-extra-arguments "--hidden --glob '!.git/'")
@@ -137,7 +123,6 @@ This function should only modify configuration layer settings."
      emacs-lisp
      multiple-cursors
      (ivy :variables ivy-enable-advanced-buffer-information t)
-     restclient
      yaml
      (spell-checking :variables spell-checking-enable-by-default nil)
      (spacemacs-layouts :variables layouts-enable-autosave nil)
@@ -364,14 +349,17 @@ It should only modify the values of Spacemacs settings."
    ;; (default t)
    dotspacemacs-colorize-cursor-according-to-state t
 
-   ;; 智能字体配置：优先使用系统最佳字体
-   dotspacemacs-default-font (cond
-                              ((spacemacs/system-is-mac)
-                               '("SF Mono" :size 14.0 :weight normal :width normal))
-                              ((spacemacs/system-is-mswindows)
-                               '("Consolas" :size 14.0 :weight normal :width normal))
-                              (t
-                               '("Source Code Pro" :size 14.0 :weight normal :width normal)))
+   ;; 智能字体配置：优先使用系统最佳字体（若字体不存在则自动降级）
+   dotspacemacs-default-font
+   (cond
+    ((spacemacs/system-is-mac)
+     (if (member "SF Mono" (font-family-list))
+         '("SF Mono" :size 14.0 :weight normal :width normal)
+       '("Menlo" :size 14.0 :weight normal :width normal)))
+    ((spacemacs/system-is-mswindows)
+     '("Consolas" :size 14.0 :weight normal :width normal))
+    (t
+     '("Source Code Pro" :size 14.0 :weight normal :width normal)))
 
    ;; The leader key (default "SPC")
    dotspacemacs-leader-key "SPC"
@@ -680,8 +668,12 @@ If you are unsure, try setting them in `dotspacemacs/user-config' first."
          (shell-pop index))))
 
   ;; 修复 org layer 缺失函数
+  ;; Spacemacs org layer 期望 `org-clocks-prefix` 返回 *字符串*（用于 prefix 描述）
+  ;; 若返回 nil，会触发 `Replacement is neither a cons cell or a string`。
   (unless (fboundp 'org-clocks-prefix)
-    (defun org-clocks-prefix (&rest args) nil))
+    (defun org-clocks-prefix (&rest _args)
+      "Prefix description for org clock commands."
+      "clock"))
 
   ;; 修复 spacemacs 缺失通用函数
   (unless (fboundp 'spacemacs/disable-hl-line-mode)

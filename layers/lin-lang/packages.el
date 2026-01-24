@@ -37,10 +37,8 @@
                   ((executable-find "python3") "python3")
                   (t "python"))))))
 
-(defun lin-lang/init-python ()
-  (use-package python
-    :defer t
-    :config
+(defun lin-lang/post-init-python ()
+  (with-eval-after-load 'python
     (defun lin-lang/python-virtualenv-detect ()
       "Smartly detect Python virtual environment."
       (when-let ((venv (or (getenv "VIRTUAL_ENV")
@@ -49,14 +47,11 @@
                            (locate-dominating-file default-directory "pyproject.toml"))))
         (setq python-shell-virtualenv-path venv)
         (message "Detected Python environment: %s" venv)))
-    
     (add-hook 'python-mode-hook #'lin-lang/python-virtualenv-detect)))
 
-(defun lin-lang/init-go-mode ()
-  (when (executable-find "go")
-    (use-package go-mode
-      :defer t
-      :config
+(defun lin-lang/post-init-go-mode ()
+  (with-eval-after-load 'go-mode
+    (when (executable-find "go")
       (setq gofmt-command (if (executable-find "goimports") "goimports" "gofmt")
             compile-command "go build -v && go test -v"
             go-test-args "-v"))))
