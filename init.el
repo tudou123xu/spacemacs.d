@@ -200,6 +200,11 @@ It should only modify the values of Spacemacs settings."
                                       nil))
                                 nil)
 
+   ;; 修复 shell-pop 和 vterm 的初始化变量问题
+   shell-default-position 'bottom
+   shell-default-height 30
+   shell-default-term-shell "/bin/zsh"
+   
    ;; If non-nil then enable support for the portable dumper. You'll need to
    ;; compile Emacs 27 from source following the instructions in file
    ;; EXPERIMENTAL.org at to root of the git repository.
