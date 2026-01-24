@@ -683,6 +683,19 @@ If you are unsure, try setting them in `dotspacemacs/user-config' first."
   (unless (fboundp 'org-clocks-prefix)
     (defun org-clocks-prefix (&rest args) nil))
 
+  ;; 修复 spacemacs 缺失通用函数
+  (unless (fboundp 'spacemacs/disable-hl-line-mode)
+    (defun spacemacs/disable-hl-line-mode ()
+      (when (fboundp 'hl-line-mode)
+        (hl-line-mode -1))))
+
+  ;; 修复 Org mode 初始化 "Replacement is neither a cons cell or a string" 错误
+  ;; 这通常是因为 org-ellipsis 被设置为非字符串值（如 face），而某些旧版函数期望字符串
+  (setq org-ellipsis nil)
+  
+  ;; 确保 org-bullets 列表安全
+  (setq org-bullets-bullet-list '("◉" "○" "✸" "✿"))
+
   )
 
 
