@@ -28,11 +28,19 @@ This function should only modify configuration layer settings."
 
    ;; List of additional paths where to look for configuration layers.
    ;; Paths must have a trailing slash (i.e. `~/.mycontribs/')
-   dotspacemacs-configuration-layer-path '()
+   dotspacemacs-configuration-layer-path '("~/.spacemacs.d/layers/")
 
    ;; List of configuration layers to load.
    dotspacemacs-configuration-layers
-   '(     ;; ====================== 核心功能层 ======================
+   '(
+     ;; ====================== Lin Shen Architecture Layers ======================
+     lin-core    ; Error handling, Security
+     lin-ui      ; Visual enhancements
+     lin-tools   ; OS integration, System tools
+     lin-lang    ; Language support
+     lin-ai      ; Unified AI capabilities
+
+     ;; ====================== Original Layers ======================
      auto-completion
      better-defaults
      helm
@@ -663,10 +671,9 @@ This function is called at the very end of Spacemacs startup, after layer
 configuration.
 Put your configuration code here, except for variables that should be set
 before packages are loaded."
-
-  ;; 加载配置文件（无需 .el 后缀）
-  ;;(require 'user-config)
-  (load-file "~/.spacemacs.d/user-config.el")
+  
+  ;; Legacy configuration loader has been replaced by Layer Architecture.
+  ;; See layers/lin-* for configuration details.
   )
 
 ;; Do not write anything past this comment. This is where Emacs will
