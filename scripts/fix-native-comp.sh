@@ -1,80 +1,38 @@
 #!/bin/bash
-# 修复 Emacs 原生编译临时目录问题
-# Author: xuzhifeng
+# scripts/fix-native-comp.sh
+# Author: Lin Shen
+# Description: Fix "error invoking gcc driver" for Emacs Native Comp on macOS
 
-echo "=== Emacs 原生编译修复工具 ==="
-echo ""
+set -e
 
-EMACS_DIR="${HOME}/.emacs.d"
-SPACEMACS_DIR="${HOME}/.spacemacs.d"
+echo "🔧 正在修复 Native Comp 编译环境..."
 
-# 检查 Emacs 目录
-if [ ! -d "$EMACS_DIR" ]; then
-    echo "✗ Emacs 目录不存在: $EMACS_DIR"
+# 1. 检查 Homebrew
+if ! command -v brew &> /dev/null; then
+    echo "❌ 未检测到 Homebrew"
     exit 1
 fi
 
-echo "✓ Emacs 目录: $EMACS_DIR"
+# 2. 安装 libgccjit 和 gcc
+# Emacs-plus 通常依赖 gcc (目前主要是 gcc-14 或 gcc-13)
+echo "📦 安装/更新 libgccjit 和 gcc..."
+brew install libgccjit gcc
 
-# 创建 eln-cache 目录
-ELN_CACHE_DIR="${EMACS_DIR}/eln-cache"
-if [ ! -d "$ELN_CACHE_DIR" ]; then
-    mkdir -p "$ELN_CACHE_DIR"
-    echo "✓ 创建 eln-cache 目录: $ELN_CACHE_DIR"
-else
-    echo "✓ eln-cache 目录已存在: $ELN_CACHE_DIR"
-fi
-
-# 创建临时目录
-TEMP_DIR="${EMACS_DIR}/tmp"
-if [ ! -d "$TEMP_DIR" ]; then
-    mkdir -p "$TEMP_DIR"
-    echo "✓ 创建临时目录: $TEMP_DIR"
-else
-    echo "✓ 临时目录已存在: $TEMP_DIR"
-fi
-
-# 设置正确的权限
-chmod 755 "$ELN_CACHE_DIR" 2>/dev/null
-chmod 755 "$TEMP_DIR" 2>/dev/null
-
-echo ""
-echo "=== 清理可能的问题文件 ==="
-
-# 清理损坏的 eln 文件
-if [ -d "$ELN_CACHE_DIR" ]; then
-    BROKEN_FILES=$(find "$ELN_CACHE_DIR" -name "*.eln" -size 0 2>/dev/null | wc -l)
-    if [ "$BROKEN_FILES" -gt 0 ]; then
-        echo "发现 $BROKEN_FILES 个损坏的 .eln 文件，正在清理..."
-        find "$ELN_CACHE_DIR" -name "*.eln" -size 0 -delete 2>/dev/null
-        echo "✓ 已清理损坏的文件"
-    else
-        echo "✓ 没有发现损坏的 .eln 文件"
+# 3. 查找 GCC 版本
+GCC_BIN=""
+for ver in 14 13 12; do
+    if [ -f "/opt/homebrew/bin/gcc-$ver" ]; then
+        GCC_BIN="/opt/homebrew/bin/gcc-$ver"
+        echo "✅ 找到 GCC: $GCC_BIN"
+        break
     fi
+done
+
+if [ -z "$GCC_BIN" ]; then
+    echo "❌ 未找到 Homebrew 安装的 GCC (gcc-14/13/12)"
+    echo "请尝试手动运行: brew install gcc"
+    exit 1
 fi
 
-# 清理临时目录中的旧文件
-if [ -d "$TEMP_DIR" ]; then
-    OLD_FILES=$(find "$TEMP_DIR" -type f -mtime +7 2>/dev/null | wc -l)
-    if [ "$OLD_FILES" -gt 0 ]; then
-        echo "发现 $OLD_FILES 个超过7天的临时文件，正在清理..."
-        find "$TEMP_DIR" -type f -mtime +7 -delete 2>/dev/null
-        echo "✓ 已清理旧的临时文件"
-    else
-        echo "✓ 没有需要清理的旧临时文件"
-    fi
-fi
-
-echo ""
-echo "=== 修复完成 ==="
-echo ""
-echo "建议操作:"
-echo "1. 重启 Emacs 以应用修复"
-echo "2. 如果问题仍然存在，在 Emacs 中运行:"
-echo "   M-x my/fix-native-compilation"
-echo "3. 如果仍有问题，可以完全禁用原生编译:"
-echo "   M-x my/disable-native-compilation"
-echo ""
-echo "日志位置: ${SPACEMACS_DIR}/logs/"
-echo ""
-
+echo "🎉 依赖安装完成。"
+echo "接下来，early-init.el 将会自动配置 Emacs 指向这个编译器。"

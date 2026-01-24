@@ -63,6 +63,15 @@
         native-comp-async-report-warnings-errors nil
         native-comp-warning-on-missing-source nil
         native-comp-always-compile nil)
+
+  ;; 修复 macOS 上 "error invoking gcc driver" 问题
+  (when (eq system-type 'darwin)
+    (let ((gcc-path (or (executable-find "gcc-14")
+                        (executable-find "gcc-13")
+                        (executable-find "gcc-12"))))
+      (when gcc-path
+        (setq native-comp-driver-options (list (concat "-B" (file-name-directory gcc-path))))
+        (message "✓ Native Comp 编译器路径已修正: %s" gcc-path))))
   
   (message "✓ 原生编译已启用"))
 
