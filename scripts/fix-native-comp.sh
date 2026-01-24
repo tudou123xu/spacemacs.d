@@ -14,13 +14,13 @@ if ! command -v brew &> /dev/null; then
 fi
 
 # 2. 安装 libgccjit 和 gcc
-# Emacs-plus 通常依赖 gcc (目前主要是 gcc-14 或 gcc-13)
+# Emacs-plus 通常依赖 Homebrew 的 gcc（当前常见为 gcc-15/14/13）
 echo "📦 安装/更新 libgccjit 和 gcc..."
 brew install libgccjit gcc
 
 # 3. 查找 GCC 版本
 GCC_BIN=""
-for ver in 14 13 12; do
+for ver in 15 14 13 12; do
     if [ -f "/opt/homebrew/bin/gcc-$ver" ]; then
         GCC_BIN="/opt/homebrew/bin/gcc-$ver"
         echo "✅ 找到 GCC: $GCC_BIN"
@@ -29,7 +29,7 @@ for ver in 14 13 12; do
 done
 
 if [ -z "$GCC_BIN" ]; then
-    echo "❌ 未找到 Homebrew 安装的 GCC (gcc-14/13/12)"
+    echo "❌ 未找到 Homebrew 安装的 GCC (gcc-15/14/13/12)"
     echo "请尝试手动运行: brew install gcc"
     exit 1
 fi

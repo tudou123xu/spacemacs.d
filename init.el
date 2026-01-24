@@ -34,6 +34,7 @@ This function should only modify configuration layer settings."
    dotspacemacs-configuration-layers
    '(
      ;; ====================== Lin Shen Architecture Layers ======================
+     lin-compat  ; Compatibility shims for stable upgrades
      lin-core    ; Error handling, Security
      lin-ui      ; Visual enhancements
      lin-tools   ; OS integration, System tools
@@ -167,6 +168,20 @@ It should only modify the values of Spacemacs settings."
    shell-enable-vterm-support t
    shell-default-full-span nil
    shell-protect-eshell-prompt nil
+
+   ;; 修复各语言 layer pre-config 时的缺失变量：
+   ;; - rust/c-c++/java/python/go/javascript 会在 pre-config 阶段往此列表 add-to-list
+   ;; - 若未定义会触发 (void-variable spacemacs--dap-supported-modes)
+   )
+
+  ;; 这些变量属于 Spacemacs 内部状态容器；某些版本未提前定义会导致 layer 崩溃
+  (defvar spacemacs--dap-supported-modes nil
+    "List of major modes supported by dap-mode (internal Spacemacs state).")
+  (defvar spacemacs--web-beautify-modes nil
+    "List of major modes supported by web-beautify (internal Spacemacs state).")
+
+  ;; 继续 dotspacemacs/init 的 setq-default（保持原文件结构）
+  (setq-default
 
    ;; ==================== 原生编译路径修复 ====================
    ;; 确保 Homebrew 路径在 exec-path 中，否则 Native Comp 找不到 gcc
@@ -652,41 +667,11 @@ configuration.
 It is mostly for variables that should be set before packages are loaded.
 If you are unsure, try setting them in `dotspacemacs/user-config' first."
 
-  ;; 环境变量和原生编译配置已在 early-init.el 中处理
-  ;; 包源配置已移至 core/package.el 中统一管理
-
-  ;; ==================== 临时修复 Spacemacs 核心缺失函数 ====================
-  
-  ;; 修复 shell layer 缺失的宏 make-shell-pop-command
-  (defmacro make-shell-pop-command (func &optional shell shell-term-shell)
-    (let* ((name (if (stringp func) func (symbol-name func)))
-           (func-name (intern (format "spacemacs/shell-pop-%s" name))))
-      `(defun ,func-name (index)
-         (interactive "P")
-         (require 'shell-pop)
-         (shell-pop--set-shell-type ,name ,shell ,shell-term-shell)
-         (shell-pop index))))
-
-  ;; 修复 org layer 缺失函数
-  ;; Spacemacs org layer 期望 `org-clocks-prefix` 返回 *字符串*（用于 prefix 描述）
-  ;; 若返回 nil，会触发 `Replacement is neither a cons cell or a string`。
-  (unless (fboundp 'org-clocks-prefix)
-    (defun org-clocks-prefix (&rest _args)
-      "Prefix description for org clock commands."
-      "clock"))
-
-  ;; 修复 spacemacs 缺失通用函数
-  (unless (fboundp 'spacemacs/disable-hl-line-mode)
-    (defun spacemacs/disable-hl-line-mode ()
-      (when (fboundp 'hl-line-mode)
-        (hl-line-mode -1))))
-
-  ;; 修复 Org mode 初始化 "Replacement is neither a cons cell or a string" 错误
-  ;; 这通常是因为 org-ellipsis 被设置为非字符串值（如 face），而某些旧版函数期望字符串
-  (setq org-ellipsis nil)
-  
-  ;; 确保 org-bullets 列表安全
-  (setq org-bullets-bullet-list '("◉" "○" "✸" "✿"))
+  ;; 环境变量和原生编译配置建议由系统与脚本统一管理
+  ;; 兼容性补丁集中在 compat/bootstrap.el，便于稳定升级
+  (let ((compat (expand-file-name "compat/bootstrap.el" dotspacemacs-directory)))
+    (when (file-exists-p compat)
+      (load compat nil 'nomessage)))
 
   )
 
