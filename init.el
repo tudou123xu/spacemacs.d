@@ -26,20 +26,20 @@ This function should only modify configuration layer settings."
    ;; a layer lazily. (default t)
    dotspacemacs-ask-for-lazy-installation t
 
-   ;; List of additional paths where to look for configuration layers.
-   ;; Paths must have a trailing slash (i.e. `~/.mycontribs/')
-   dotspacemacs-configuration-layer-path '("~/.spacemacs.d/layers/")
+  ;; List of additional paths where to look for configuration layers.
+  ;; Paths must have a trailing slash (i.e. `~/.mycontribs/')
+  dotspacemacs-configuration-layer-path nil
 
    ;; List of configuration layers to load.
    dotspacemacs-configuration-layers
    '(
      ;; ====================== Lin Shen Architecture Layers ======================
-     lin-compat  ; Compatibility shims for stable upgrades
-     lin-core    ; Error handling, Security
-     lin-ui      ; Visual enhancements
-     lin-tools   ; OS integration, System tools
-     lin-lang    ; Language support
-     lin-ai      ; Unified AI capabilities
+    (lin-compat :location "~/.spacemacs.d/layers/lin-compat/")  ; Compatibility shims for stable upgrades
+    (lin-core   :location "~/.spacemacs.d/layers/lin-core/")    ; Error handling, Security
+    (lin-ui     :location "~/.spacemacs.d/layers/lin-ui/")      ; Visual enhancements
+    (lin-tools  :location "~/.spacemacs.d/layers/lin-tools/")   ; OS integration, System tools
+    (lin-lang   :location "~/.spacemacs.d/layers/lin-lang/")    ; Language support
+    (lin-ai     :location "~/.spacemacs.d/layers/lin-ai/")      ; Unified AI capabilities
 
      ;; ====================== Original Layers ======================
      auto-completion
