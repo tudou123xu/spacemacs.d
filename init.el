@@ -691,9 +691,9 @@ This function is called at the very end of Spacemacs startup, after layer
 configuration.
 Put your configuration code here, except for variables that should be set
 before packages are loaded."
-  
-  ;; Legacy configuration loader has been replaced by Layer Architecture.
-  ;; See layers/lin-* for configuration details.
+  (let ((user-config (expand-file-name "user-config.el" dotspacemacs-directory)))
+    (when (file-exists-p user-config)
+      (load-file user-config)))
   )
 
 ;; Do not write anything past this comment. This is where Emacs will
