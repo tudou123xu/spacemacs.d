@@ -33,17 +33,15 @@ This function should only modify configuration layer settings."
    ;; List of configuration layers to load.
    dotspacemacs-configuration-layers
    '(
-     ;; ====================== Lin Shen Architecture Layers ======================
-    (lin-compat :location "~/.spacemacs.d/layers/lin-compat/")  ; Compatibility shims for stable upgrades
-    (lin-core   :location "~/.spacemacs.d/layers/lin-core/")    ; Error handling, Security
-    (lin-ui     :location "~/.spacemacs.d/layers/lin-ui/")      ; Visual enhancements
-    (lin-tools  :location "~/.spacemacs.d/layers/lin-tools/")   ; OS integration, System tools
-    (lin-lang   :location "~/.spacemacs.d/layers/lin-lang/")    ; Language support
-    (lin-ai     :location "~/.spacemacs.d/layers/lin-ai/")      ; Unified AI capabilities
+     ;; ====================== Custom Layers ======================
+     (lin-core    :location "~/.spacemacs.d/layers/lin-core/")    ; Error handling, Security audit
+     (lin-enhance :location "~/.spacemacs.d/layers/lin-enhance/") ; TRAMP, macOS, CJK fonts, pyim
+     (lin-lang    :location "~/.spacemacs.d/layers/lin-lang/")    ; Language tweaks (Org/Python/Go/LSP)
+     (lin-ai      :location "~/.spacemacs.d/layers/lin-ai/")      ; AI: Aider/Ellama/Claude
+     (lin-agent   :location "~/.spacemacs.d/layers/lin-agent/")   ; Claude Agent: loop, tools, memory
 
      ;; ====================== Original Layers ======================
      auto-completion
-     helm
 
      ;; ====================== 编程语言层 ======================
      ;; --- Python增强 ---
@@ -691,9 +689,15 @@ This function is called at the very end of Spacemacs startup, after layer
 configuration.
 Put your configuration code here, except for variables that should be set
 before packages are loaded."
-  (let ((user-config (expand-file-name "user-config.el" dotspacemacs-directory)))
-    (when (file-exists-p user-config)
-      (load-file user-config)))
+
+  ;; Org-roam
+  (setq org-roam-v2-ack t)
+  (with-eval-after-load 'org-roam
+    (setq org-roam-directory (file-truename "~/org-notes/org-roam")
+          org-roam-completion-everywhere t)
+    (unless (file-directory-p org-roam-directory)
+      (make-directory org-roam-directory t))
+    (org-roam-setup))
   )
 
 ;; Do not write anything past this comment. This is where Emacs will
