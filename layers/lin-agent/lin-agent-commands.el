@@ -90,12 +90,15 @@
     (lambda (_args)
       (lin-agent/inspect-context)))
 
-  (lin-agent-slash-register "/model" "Switch model interactively"
+  (lin-agent-slash-register "/model" "Switch model: /model deepseek-chat or /model (interactive)"
     (lambda (args)
       (if (car args)
           (progn (setq lin-agent-model (car args))
-                 (lin-agent--display "\n[Model → %s]\n" lin-agent-model))
-        (lin-agent/switch-provider))))
+                 (lin-agent--display "\n[Model → %s (provider: %s)]\n" lin-agent-model lin-agent-provider))
+        (let ((model (read-string (format "Model name (current: %s): " (lin-agent--current-model)))))
+          (when (not (string-empty-p model))
+            (setq lin-agent-model model)
+            (lin-agent--display "\n[Model → %s]\n" model))))))
 
   (lin-agent-slash-register "/rewind" "Rewind last N turns (default 1)"
     (lambda (args)
@@ -105,7 +108,9 @@
   (lin-agent-slash-register "/status" "Show session status summary"
     (lambda (_args)
       (lin-agent--display "\n=== Session Status ===\n")
-      (lin-agent--display "  Model: %s\n" lin-agent-model)
+      (lin-agent--display "  Provider: %s\n" lin-agent-provider)
+      (lin-agent--display "  Model: %s\n" (lin-agent--current-model))
+      (lin-agent--display "  API: %s\n" (lin-agent--current-api-type))
       (lin-agent--display "  Mode:  %s\n" lin-agent--mode)
       (lin-agent--display "  Turns: %d\n" lin-agent--turn-count)
       (lin-agent--display "  Messages: %d\n" (length lin-agent--messages))
@@ -163,12 +168,68 @@
           (lin-agent--display "  %s%s\n" f (if (file-directory-p (expand-file-name f root)) "/" "")))
         (lin-agent--display "\n"))))
 
+  (lin-agent-slash-register "/exit" "End session and close the agent buffer (Claude Code /exit)"
+    (lambda (_args)
+      (if (eq major-mode 'lin-agent-mode)
+          (if (fboundp 'lin-agent/close-session)
+              (lin-agent/close-session)
+            (lin-agent/stop))
+        (when (fboundp 'lin-agent/stop)
+          (lin-agent/stop)))))
+
+  (lin-agent-slash-register "/plan" "Switch to plan mode (read-only analysis)"
+    (lambda (_args)
+      (lin-agent/set-mode 'plan)
+      (lin-agent--display "\n[Mode → plan]\n")))
+
+  (lin-agent-slash-register "/session" "Show session id, buffer, and transcript file"
+    (lambda (_args)
+      (lin-agent--display "\n=== Session ===\n")
+      (lin-agent--display "  lin-agent:  %s\n" (if (boundp 'lin-agent-version) lin-agent-version "unknown"))
+      (lin-agent--display "  Buffer:     %s\n" (if (boundp 'lin-agent--buffer-name) lin-agent--buffer-name "—"))
+      (when (boundp 'lin-agent--session-id)
+        (lin-agent--display "  Session id: %s\n" lin-agent--session-id))
+      (when (boundp 'lin-agent--session-file)
+        (lin-agent--display "  Transcript: %s\n" (or lin-agent--session-file "—")))
+      (lin-agent--display "  Active:     %s\n" (if (and (boundp 'lin-agent--session-active) lin-agent--session-active) "yes" "no"))
+      (lin-agent--display "\n")))
+
+  (lin-agent-slash-register "/version" "Show Emacs and lin-agent version"
+    (lambda (_args)
+      (lin-agent--display "\n=== Version ===\n")
+      (lin-agent--display "  lin-agent: %s\n" (if (boundp 'lin-agent-version) lin-agent-version "unknown"))
+      (lin-agent--display "  Emacs:     %s\n" emacs-version)
+      (lin-agent--display "\n")))
+
+  (lin-agent-slash-register "/usage" "Token and cost usage (alias for status + stats)"
+    (lambda (_args)
+      (lin-agent--display "\n=== Usage ===\n")
+      (lin-agent--display "  Provider: %s | Model: %s\n" lin-agent-provider (lin-agent--current-model))
+      (lin-agent--display "  Turns: %d | Messages: %d\n" lin-agent--turn-count (length lin-agent--messages))
+      (lin-agent--display "  %s\n" (lin-agent--token-budget-status))
+      (when lin-agent--cost-data
+        (lin-agent--display "  Input tokens:  %d\n" (plist-get lin-agent--cost-data :input-tokens))
+        (lin-agent--display "  Output tokens: %d\n" (plist-get lin-agent--cost-data :output-tokens))
+        (lin-agent--display "  Total cost:    $%.4f\n" (plist-get lin-agent--cost-data :total-cost)))
+      (lin-agent--display "\n")))
+
+  (lin-agent-slash-register "/worktree" "List git worktrees (git worktree list)"
+    (lambda (_args)
+      (let* ((root (or (and (fboundp 'projectile-project-root) (projectile-project-root))
+                       default-directory))
+             (out (shell-command-to-string
+                   (format "git -C %s worktree list 2>&1" (shell-quote-argument root)))))
+        (lin-agent--display "\n=== Git worktrees ===\n%s\n" out))))
+
   (lin-agent-slash-register "/doctor" "Run diagnostics on the agent configuration"
     (lambda (_args)
       (lin-agent--display "\n=== Agent Doctor ===\n")
+      (lin-agent--display "  lin-agent:  %s\n" (if (boundp 'lin-agent-version) lin-agent-version "unknown"))
+      (lin-agent--display "  Provider:   %s (%s)\n" lin-agent-provider (lin-agent--current-api-type))
       (lin-agent--display "  API key:    %s\n"
-                          (if (ignore-errors (lin-ai/get-key 'claude)) "OK" "MISSING"))
-      (lin-agent--display "  Model:      %s\n" lin-agent-model)
+                          (if (ignore-errors (lin-ai/get-key lin-agent-provider)) "OK" "MISSING"))
+      (lin-agent--display "  Model:      %s\n" (lin-agent--current-model))
+      (lin-agent--display "  Endpoint:   %s\n" (lin-agent--current-endpoint))
       (lin-agent--display "  Tools:      %d registered\n" (hash-table-count lin-agent--tools))
       (lin-agent--display "  MCP Memory: %s\n"
                           (if (and (boundp 'lin-agent-mcp--process) lin-agent-mcp--process)
@@ -281,7 +342,7 @@
               (lin-agent--display "\n[Permission mode → %s]\n" mode))
           (lin-agent--display "\n[Unknown mode: %s]\n" mode)))))
 
-  (lin-agent-slash-register "/mcp" "Manage MCP servers: list, connect NAME, disconnect NAME"
+  (lin-agent-slash-register "/mcp" "MCP: connect|disconnect|resources [SERVER]"
     (lambda (args)
       (require 'mcp-client)
       (pcase (car args)
@@ -293,13 +354,27 @@
          (if (cadr args)
              (lin-agent-mcp-disconnect (cadr args))
            (call-interactively #'lin-agent-mcp-disconnect)))
+        ("resources"
+         (if (cadr args)
+             (condition-case err
+                 (let ((res (lin-agent-mcp-list-resources (cadr args))))
+                   (lin-agent--display "\n=== MCP resources (%s) ===\n%s\n" (cadr args)
+                                       (if res
+                                           (mapconcat (lambda (r)
+                                                        (format "%s  %s"
+                                                                (or (alist-get 'uri r) "?")
+                                                                (or (alist-get 'name r) "")))
+                                                      (if (vectorp res) (append res nil) res) "\n")
+                                         "(none)")))
+               (error (lin-agent--display "\n[mcp resources error: %s]\n" (error-message-string err))))
+           (lin-agent--display "\n%s\n" (lin-agent-mcp-list-resources-all-formatted))))
         (_
          (let ((active (lin-agent-mcp-active-servers))
                (configs (mapcar #'car lin-agent-mcp-server-configs)))
            (lin-agent--display "\n=== MCP Servers ===\n")
            (lin-agent--display "Configured: %s\n" (if configs (string-join configs ", ") "(none)"))
            (lin-agent--display "Active: %s\n" (if active (string-join active ", ") "(none)"))
-           (lin-agent--display "\nUsage: /mcp connect NAME | /mcp disconnect NAME\n"))))))
+           (lin-agent--display "\nUsage: /mcp connect NAME | /mcp disconnect NAME | /mcp resources [NAME]\n"))))))
 
   (lin-agent-slash-register "/feedback" "Send feedback about the agent experience"
     (lambda (args)
@@ -351,7 +426,14 @@
       (lin-agent--display "C-c C-i        Inspect context\n")
       (lin-agent--display "C-c C-e        Export\n")
       (lin-agent--display "C-c C-d        Doctor\n")
-      (lin-agent--display "q              Quit window\n")))
+      (lin-agent--display "q              Quit window\n")
+      (lin-agent--display "@path / C-c C-a / SPC o c A  Attach file or folder (Cursor-style)\n")
+      (lin-agent--display "\n--- macOS (lin-ai layer) ---\n")
+      (lin-agent--display "Cmd+I  Toggle agent session (close when in agent buffer)\n")
+      (lin-agent--display "Cmd+K  Inline edit / abort gptel / close AI chat\n")
+      (lin-agent--display "\n--- Claude Code-style slash ---\n")
+      (lin-agent--display "/exit /plan /session /version /usage /worktree\n")
+      (lin-agent--display "Tools: mcp_list_resources, mcp_read_resource, notebook_edit (.ipynb)\n")))
 
   (lin-agent-slash-register "/security-review" "Ask LLM to do a security review of recent changes"
     (lambda (_args)
@@ -374,6 +456,80 @@ missing auth checks, and other OWASP Top 10 risks.\n\nChanged files:\n%s\n\nRead
               (lin-agent--display "%s\n" (mapconcat (lambda (f) (format "  %s" f))
                                                      (cl-subseq files 0 (min 20 (length files))) "\n")))
           (lin-agent--display "\n[Directory not found: %s]\n" dir)))))
+
+  (lin-agent-slash-register "/tasks" "List all tasks (or filter: /tasks pending|completed)"
+    (lambda (args)
+      (let* ((handler (lin-agent-tool-get-handler "task_list"))
+             (status (or (car args) "all"))
+             (result (funcall handler `((status . ,status)))))
+        (lin-agent--display "\n=== Tasks (%s) ===\n%s\n\n" status result))))
+
+  (lin-agent-slash-register "/key" "Set API key for current provider (or specify: /key deepseek)"
+    (lambda (args)
+      (let* ((provider (if (car args) (intern (car args)) lin-agent-provider))
+             (key (read-passwd (format "%s API key: " provider))))
+        (when (and key (not (string-empty-p key)))
+          (lin-ai/set-key provider key)
+          (lin-agent--display "\n[%s API key set for this session]\n" provider)))))
+
+  (lin-agent-slash-register "/provider" "Switch AI provider: /provider deepseek|siliconflow|claude|openai"
+    (lambda (args)
+      (let* ((available (mapcar (lambda (c) (symbol-name (car c))) lin-agent-provider-configs))
+             (choice (if (car args) (car args)
+                       (completing-read "Provider: " available nil t))))
+        (setq lin-agent-provider (intern choice))
+        (setq lin-agent-model nil
+              lin-agent-api-endpoint nil)
+        (lin-agent--display "\n[Provider → %s | Model: %s | Endpoint: %s]\n"
+                            choice
+                            (lin-agent--current-model)
+                            (lin-agent--current-endpoint))
+        (unless (lin-ai/get-key lin-agent-provider)
+          (lin-agent--display "[⚠ No API key for %s. Use /key to set one]\n" choice)))))
+
+  (lin-agent-slash-register "/retry" "Retry the last user message"
+    (lambda (_args)
+      (let ((last-user-msg
+             (cl-find-if (lambda (m) (equal (alist-get 'role m) "user"))
+                         (reverse lin-agent--messages))))
+        (if last-user-msg
+            (let ((content (alist-get 'content last-user-msg)))
+              (when (vectorp content)
+                (setq content (alist-get 'text (cl-find-if
+                                                (lambda (b) (equal (alist-get 'type b) "text"))
+                                                (append content nil)))))
+              (when (stringp content)
+                ;; Remove last assistant+user pair
+                (when (>= (length lin-agent--messages) 2)
+                  (setq lin-agent--messages (butlast lin-agent--messages 2))
+                  (cl-decf lin-agent--turn-count))
+                (lin-agent--display "\n[Retrying: %s]\n" (truncate-string-to-width content 60 nil nil "..."))
+                (lin-agent/send-message content)))
+          (lin-agent--display "\n[No message to retry]\n")))))
+
+  (lin-agent-slash-register "/pr" "Generate a pull request description from current branch"
+    (lambda (args)
+      (let* ((root (or (and (fboundp 'projectile-project-root) (projectile-project-root))
+                       default-directory))
+             (base (or (car args) "main"))
+             (branch (string-trim (shell-command-to-string
+                                   (format "git -C %s rev-parse --abbrev-ref HEAD 2>/dev/null" (shell-quote-argument root)))))
+             (log (shell-command-to-string
+                   (format "git -C %s log %s..HEAD --oneline 2>/dev/null" (shell-quote-argument root) base)))
+             (stat (shell-command-to-string
+                    (format "git -C %s diff %s...HEAD --stat 2>/dev/null | head -40" (shell-quote-argument root) base))))
+        (if (string-empty-p log)
+            (lin-agent--display "\n[No commits ahead of %s]\n" base)
+          (lin-agent/send-message
+           (format "Generate a pull request description for branch '%s' (base: %s).
+
+Commits:
+%s
+
+Changed files:
+%s
+
+Write a clear PR title + body with: Summary, Changes, Testing notes." branch base log stat))))))
 
   (lin-agent-slash-register "/review" "Ask LLM to review recent changes in project"
     (lambda (_args)
@@ -410,6 +566,10 @@ missing auth checks, and other OWASP Top 10 risks.\n\nChanged files:\n%s\n\nRead
      ("a" "Start session"    lin-agent/start-session)
      ("s" "Send message"     lin-agent/send-with-history)
      ("q" "Stop session"     lin-agent/stop)
+     ("x" "Exit & close buf" (lambda () (interactive)
+                              (if (eq major-mode 'lin-agent-mode)
+                                  (lin-agent/close-session)
+                                (user-error "Run from the Claude Agent buffer"))))
      ("S" "Save session"     lin-agent/save-session)
      ("R" "Resume session"   lin-agent/resume-session)
      ("N" "Rename session"   lin-agent/rename-session)
@@ -432,6 +592,7 @@ missing auth checks, and other OWASP Top 10 risks.\n\nChanged files:\n%s\n\nRead
      ("$" "Show cost"        lin-agent/show-cost)
      ("B" "Token budget"     lin-agent/show-token-budget)
      ("d" "Doctor"           (lambda () (interactive) (lin-agent--try-slash-command "/doctor")))
+     ("v" "Version"          (lambda () (interactive) (lin-agent--try-slash-command "/version")))
      ("p" "Switch provider"  lin-agent/switch-provider)]))
 
 (provide 'lin-agent-commands)

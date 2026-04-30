@@ -101,13 +101,11 @@ Example: ((\"filesystem\" :command \"npx\" :args (\"-y\" \"@modelcontextprotocol
 
 (defun lin-agent-mcp-call-tool (name tool-name arguments)
   "Call TOOL-NAME on MCP server NAME with ARGUMENTS. Returns result synchronously."
-  (let ((result nil) (done nil) (err nil))
+  (let ((result nil) (done nil))
     (lin-agent-mcp--send-rpc name "tools/call"
       `(("name" . ,tool-name) ("arguments" . ,arguments))
       (lambda (r) (setq result r done t)))
-    (let ((deadline (+ (float-time) 30)))
-      (while (and (not done) (< (float-time) deadline))
-        (accept-process-output nil 0.1)))
+    (lin-agent-mcp--wait-rpc name 30)
     (if done
         (let ((content (alist-get 'content result)))
           (if (vectorp content)
@@ -172,18 +170,90 @@ Example: ((\"filesystem\" :command \"npx\" :args (\"-y\" \"@modelcontextprotocol
       (when (boundp 'lin-agent--tools)
         (remhash tool-name lin-agent--tools)))))
 
-;; ==================== Resource Listing ====================
+;; ==================== Resources (Claude Code ListMcpResources / ReadMcpResource) ====================
+
+(defun lin-agent-mcp--process-for (name)
+  "Return live process for MCP server NAME, or nil."
+  (when-let ((server (gethash name lin-agent-mcp--servers)))
+    (let ((proc (plist-get server :process)))
+      (when (process-live-p proc) proc))))
+
+(defun lin-agent-mcp--wait-rpc (name &optional timeout-secs)
+  "Block until pending RPC for server NAME completes or TIMEOUT-SECS (default 30)."
+  (let ((proc (lin-agent-mcp--process-for name))
+        (deadline (+ (float-time) (or timeout-secs 30))))
+    (while (and proc (< (float-time) deadline))
+      (accept-process-output proc 0.15 nil t))))
 
 (defun lin-agent-mcp-list-resources (name)
-  "List resources from MCP server NAME."
+  "List resources from MCP server NAME.
+Returns the resources alist vector/list, or nil on timeout/error."
   (let ((result nil) (done nil))
+    (unless (lin-agent-mcp-connected-p name)
+      (error "MCP server not connected: %s" name))
     (lin-agent-mcp--send-rpc name "resources/list" nil
       (lambda (r) (setq result r done t)))
-    (let ((deadline (+ (float-time) 10)))
-      (while (and (not done) (< (float-time) deadline))
-        (accept-process-output nil 0.1)))
+    (lin-agent-mcp--wait-rpc name 15)
     (when done
       (alist-get 'resources result))))
+
+(defun lin-agent-mcp-read-resource-sync (name uri)
+  "Read resource URI from MCP server NAME synchronously.
+Returns concatenated text contents or an error message string."
+  (cond
+   ((not (lin-agent-mcp-connected-p name))
+    (format "MCP server not connected: %s" name))
+   ((not (and uri (not (string-empty-p uri))))
+    "mcp_read_resource: uri is required")
+   (t
+    (let ((result nil) (done nil))
+      (lin-agent-mcp--send-rpc name "resources/read" `(("uri" . ,uri))
+        (lambda (r) (setq result r done t)))
+      (lin-agent-mcp--wait-rpc name 45)
+      (if (not done)
+          "MCP resources/read timed out"
+        (let ((contents (alist-get 'contents result)))
+          (cond
+           ((and contents (vectorp contents))
+            (mapconcat
+             (lambda (c)
+               (let ((text (alist-get 'text c)))
+                 (if (and text (not (string-empty-p text)))
+                     text
+                   (format "[non-text resource uri=%s mime=%s]"
+                           (or (alist-get 'uri c) "?")
+                           (or (alist-get 'mimeType c) "?")))))
+             (append contents nil)
+             "\n---\n"))
+           ((and contents (listp contents))
+            (mapconcat
+             (lambda (c)
+               (or (alist-get 'text c) ""))
+             contents "\n---\n"))
+           (t (format "%S" result)))))))))
+
+(defun lin-agent-mcp-list-resources-all-formatted ()
+  "List resources from every connected MCP server as a single string."
+  (let ((servers (lin-agent-mcp-active-servers)))
+    (if (null servers)
+        "No MCP servers connected. Configure `lin-agent-mcp-server-configs' and use /mcp connect."
+      (mapconcat
+       (lambda (srv)
+         (let ((res (condition-case err
+                        (lin-agent-mcp-list-resources srv)
+                      (error (format "(error: %s)" (error-message-string err))))))
+           (concat "=== " srv " ===\n"
+                   (if res
+                       (let ((lst (if (vectorp res) (append res nil) res)))
+                         (mapconcat
+                          (lambda (r)
+                            (format "  %s  %s"
+                                    (or (alist-get 'uri r) (alist-get 'name r) "?")
+                                    (or (alist-get 'name r) "")))
+                          lst "\n"))
+                     "  (none or error)")
+                   "\n")))
+       servers "\n"))))
 
 (provide 'mcp-client)
 ;;; mcp-client.el ends here

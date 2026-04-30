@@ -14,7 +14,7 @@
     (org :location built-in)
     (python :location built-in)
     (go-mode :location built-in)
-    (lsp-mode :location built-in)
+    lsp-mode
     )
   "The list of Lisp packages required by the lin-lang layer.")
 

@@ -229,9 +229,6 @@ Replaces tool_result content blocks older than THRESHOLD turns with summaries."
 Preserve: key decisions, file paths, code changes, user preferences, errors encountered. \
 Be under 500 words.\n\n%s"
                                  (lin-agent--messages-to-text to-summarize)))
-         (json-object-type 'alist)
-         (json-key-type 'symbol)
-         (json-array-type 'list)
          (response (condition-case nil
                        (plz 'post lin-agent-api-endpoint
                          :headers (lin-agent--api-headers)
@@ -241,7 +238,7 @@ Be under 500 words.\n\n%s"
                                   ("messages" . ,(vector
                                                   `(("role" . "user")
                                                     ("content" . ,summary-prompt))))))
-                         :as #'json-read
+                         :as #'lin-agent--json-read-with-symbols
                          :timeout 60)
                      (error nil)))
          (summary (when response (lin-agent--extract-text response))))
@@ -313,52 +310,108 @@ Be under 500 words.\n\n%s"
 
 ;; ==================== Session Persistence ====================
 
+;; ==================== Session Persistence (JSONL) ====================
+
 (defvar lin-agent-session-dir
   (expand-file-name "agent-sessions/" user-emacs-directory)
-  "Directory to store persisted agent sessions.")
+  "Directory for session transcripts.")
 
-(defun lin-agent--session-file (&optional id)
-  "Return path for session file with optional ID."
-  (expand-file-name (format "%s.json" (or id (format-time-string "%Y%m%d-%H%M%S")))
-                    lin-agent-session-dir))
+(defvar lin-agent--session-id nil
+  "Current session ID.")
+
+(defvar lin-agent--session-file nil
+  "Path to current session JSONL file.")
+
+(defun lin-agent--session-init ()
+  "Initialize session persistence for a new session."
+  (make-directory lin-agent-session-dir t)
+  (setq lin-agent--session-id (format-time-string "%Y%m%d-%H%M%S"))
+  (setq lin-agent--session-file
+        (expand-file-name (format "%s.jsonl" lin-agent--session-id)
+                          lin-agent-session-dir))
+  ;; Write header event
+  (lin-agent--session-append-event
+   "session_start"
+   `((model . ,lin-agent-model)
+     (mode . ,(symbol-name lin-agent--mode))
+     (cwd . ,default-directory)
+     (emacs_version . ,emacs-version))))
+
+(defun lin-agent--session-append-event (type data)
+  "Append a JSONL event of TYPE with DATA to the session file."
+  (when lin-agent--session-file
+    (let ((event `((type . ,type)
+                   (timestamp . ,(format-time-string "%Y-%m-%dT%H:%M:%S%z"))
+                   (data . ,data))))
+      (with-temp-buffer
+        (insert (json-encode event) "\n")
+        (append-to-file (point-min) (point-max) lin-agent--session-file)))))
+
+(defun lin-agent--session-append-message (msg)
+  "Append a conversation MSG to the session transcript."
+  (lin-agent--session-append-event "message" msg))
 
 (defun lin-agent/save-session ()
-  "Save current session to disk."
+  "Save current session (flush all messages to JSONL)."
   (interactive)
   (when lin-agent--messages
-    (make-directory lin-agent-session-dir t)
-    (let* ((id (format-time-string "%Y%m%d-%H%M%S"))
-           (path (lin-agent--session-file id))
-           (data `((id . ,id)
-                   (model . ,lin-agent-model)
-                   (mode . ,(symbol-name lin-agent--mode))
-                   (turns . ,lin-agent--turn-count)
-                   (cost . ,(when lin-agent--cost-data
-                              (plist-get lin-agent--cost-data :total-cost)))
-                   (messages . ,(vconcat lin-agent--messages)))))
-      (with-temp-file path
-        (insert (json-encode data)))
-      (message "Session saved: %s" path))))
+    (unless lin-agent--session-file
+      (lin-agent--session-init))
+    (lin-agent--session-append-event "save"
+      `((turns . ,lin-agent--turn-count)
+        (messages_count . ,(length lin-agent--messages))
+        (cost . ,(when lin-agent--cost-data
+                   (plist-get lin-agent--cost-data :total-cost)))))
+    (message "Session saved: %s" lin-agent--session-file)))
 
 (defun lin-agent/resume-session ()
-  "Resume a previously saved session."
+  "Resume a saved session from JSONL transcript."
   (interactive)
   (make-directory lin-agent-session-dir t)
-  (let* ((files (directory-files lin-agent-session-dir nil "\\.json$"))
+  (let* ((files (directory-files lin-agent-session-dir nil "\\.jsonl$"))
          (choice (completing-read "Resume session: " files nil t)))
     (when choice
       (let* ((path (expand-file-name choice lin-agent-session-dir))
-             (json-object-type 'alist)
-             (json-array-type 'list)
-             (data (json-read-file path)))
-        (setq lin-agent--messages (alist-get 'messages data))
-        (setq lin-agent--turn-count (or (alist-get 'turns data) 0))
-        (setq lin-agent-model (or (alist-get 'model data) lin-agent-model))
-        (setq lin-agent--mode (intern (or (alist-get 'mode data) "agent")))
+             (messages nil)
+             (meta nil))
+        ;; Parse JSONL: read line by line
+        (with-temp-buffer
+          (insert-file-contents path)
+          (goto-char (point-min))
+          (while (not (eobp))
+            (let* ((line (buffer-substring-no-properties
+                          (point) (line-end-position)))
+                   (json-object-type 'alist)
+                   (json-key-type 'symbol)
+                   (json-array-type 'list))
+              (when (not (string-empty-p line))
+                (condition-case nil
+                    (let* ((event (json-read-from-string line))
+                           (type (alist-get 'type event))
+                           (data (alist-get 'data event)))
+                      (cond
+                       ((equal type "session_start")
+                        (setq meta data))
+                       ((equal type "message")
+                        (push data messages))))
+                  (error nil))))
+            (forward-line 1)))
+        ;; Restore state
+        (setq lin-agent--messages (nreverse messages))
+        (setq lin-agent--turn-count
+              (/ (length (cl-remove-if-not
+                          (lambda (m) (equal (alist-get 'role m) "assistant"))
+                          lin-agent--messages))
+                 1))
+        (when meta
+          (setq lin-agent-model (or (alist-get 'model meta) lin-agent-model))
+          (setq lin-agent--mode (intern (or (alist-get 'mode meta) "agent"))))
         (lin-agent--reset-cost)
+        (setq lin-agent--session-id (file-name-sans-extension choice))
+        (setq lin-agent--session-file path)
         (lin-agent/start-session t)
-        (message "Resumed session %s (%d turns, mode: %s)"
-                 choice lin-agent--turn-count lin-agent--mode)))))
+        (message "Resumed session %s (%d messages, mode: %s)"
+                 choice (length lin-agent--messages) lin-agent--mode)))))
 
 ;; ==================== Rewind ====================
 

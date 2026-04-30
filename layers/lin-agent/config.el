@@ -5,19 +5,75 @@
 (let ((dir (file-name-directory (or load-file-name buffer-file-name))))
   (add-to-list 'load-path dir))
 
+;; Parity note (vs Claude Code @anthropic-ai/claude-code decompiled src):
+;; Covered in Emacs: core file/shell/grep/glob/LSP, plan/ask modes, todos, tasks,
+;; git diff/worktree, web fetch/search, memory (MemPalace MCP), MCP `resources/list`
+;; + `resources/read`, notebook cell edit (.ipynb), generic MCP tool proxy, skills,
+;; subagent `agent', config/sleep/ask_user, @mentions, slash commands.
+;; Not ported: PowerShellTool, KAIROS Brief/Team/Task remote, browser automation,
+;; feature-gated internal modules (see reference README).
+
+(defconst lin-agent-version "0.4-claude-code-parity"
+  "lin-agent layer version (informational).")
+
 ;; ==================== Agent Configuration ====================
 
-(defvar lin-agent-model "claude-sonnet-4-20250514"
-  "Default Claude model for the agent loop.")
+(defvar lin-agent-provider 'siliconflow
+  "Current AI provider symbol: claude, deepseek, siliconflow, openai.")
+
+;; ==================== Built-in API Keys ====================
+
+(defvar lin-agent-builtin-keys
+  '((siliconflow . "sk-joikxozisukypzqwkbtfdrnsonykalzmojzjnbpwvumagglp")
+    (deepseek    . "sk-1d92e11cbd284a439b78df6e7f4b280b"))
+  "Built-in API keys for providers. Checked before authinfo and env vars.")
+
+(defvar lin-agent-provider-configs
+  '((claude      . (:model "claude-sonnet-4-20250514"
+                    :endpoint "https://api.anthropic.com/v1/messages"
+                    :api-type claude
+                    :api-version "2023-06-01"))
+    (deepseek    . (:model "deepseek-chat"
+                    :endpoint "https://api.deepseek.com/v1/chat/completions"
+                    :api-type openai))
+    (siliconflow . (:model "deepseek-ai/DeepSeek-V3"
+                    :endpoint "https://api.siliconflow.cn/v1/chat/completions"
+                    :api-type openai))
+    (openai      . (:model "gpt-4o"
+                    :endpoint "https://api.openai.com/v1/chat/completions"
+                    :api-type openai)))
+  "Provider configurations. :api-type is either `claude' or `openai'.")
+
+(defvar lin-agent-model nil
+  "Override model name. If nil, uses provider default.")
 
 (defvar lin-agent-max-tokens 8192
   "Maximum tokens per response.")
 
-(defvar lin-agent-api-endpoint "https://api.anthropic.com/v1/messages"
-  "Claude API messages endpoint.")
+(defvar lin-agent-api-endpoint nil
+  "Override API endpoint. If nil, uses provider default.")
 
 (defvar lin-agent-api-version "2023-06-01"
-  "Anthropic API version header.")
+  "Anthropic API version header (Claude only).")
+
+(defun lin-agent--provider-config ()
+  "Get current provider config plist."
+  (or (alist-get lin-agent-provider lin-agent-provider-configs)
+      (error "Unknown provider: %s" lin-agent-provider)))
+
+(defun lin-agent--current-model ()
+  "Get current model name."
+  (or lin-agent-model
+      (plist-get (lin-agent--provider-config) :model)))
+
+(defun lin-agent--current-endpoint ()
+  "Get current API endpoint."
+  (or lin-agent-api-endpoint
+      (plist-get (lin-agent--provider-config) :endpoint)))
+
+(defun lin-agent--current-api-type ()
+  "Get current API type: `claude' or `openai'."
+  (plist-get (lin-agent--provider-config) :api-type))
 
 (defvar lin-agent-memory-enabled t
   "Whether to enable MemPalace memory integration.")
@@ -98,9 +154,21 @@ when you observe them."
     (config . auto)
     (sleep . auto)
     (agent . confirm)
-    (git_diff . auto))
+    (git_diff . auto)
+    (git_worktree . auto)
+    (task_create . confirm)
+    (task_update . confirm)
+    (task_list . auto)
+    (task_get . auto)
+    (tool_search . auto)
+    (open_file . confirm)
+    (project_structure . auto)
+    (mcp_list_resources . auto)
+    (mcp_read_resource . auto)
+    (notebook_edit . confirm))
   "Tool permission rules. Keys must match tool names exactly (underscores).
-`auto' = no confirmation, `confirm' = ask user.")
+`auto' = no confirmation, `confirm' = ask user.
+Tools omitted here default to `confirm' in `agent-loop' (see `alist-get').")
 
 (defvar lin-agent-shell-allowed-dirs nil
   "List of directory paths the shell_exec tool is allowed to operate in.
@@ -132,7 +200,8 @@ If nil, all directories are allowed. Paths must be absolute.")
   "ocp" #'lin-agent/switch-provider
   ;; Skills
   "ock" #'lin-agent/list-skills
-  "ocK" #'lin-agent-skill-load-by-name
+  ;; API Key
+  "ocK" #'lin-ai/set-key
   ;; Session Management
   "ocS" #'lin-agent/save-session
   "ocR" #'lin-agent/resume-session
@@ -147,7 +216,21 @@ If nil, all directories are allowed. Paths must be absolute.")
   "ocy" #'lin-agent/copy-last-response
   ;; Command Palette
   "oc." #'lin-agent-command-palette
+  ;; Cursor-style @attach (project file/dir completion)
+  "ocA" #'lin-agent-insert-mention
   ;; MCP disconnect
   "ocD" #'lin-agent/memory-disconnect)
+
+;; ==================== User Hooks ====================
+
+(defvar lin-agent-user-submit-hooks nil
+  "Functions called before user input is processed. Each receives (prompt).
+Return a modified prompt string, or nil to use original.")
+
+(defvar lin-agent-user-stop-hooks nil
+  "Functions called when session stops.")
+
+(defvar lin-agent-turn-complete-hooks nil
+  "Functions called after each assistant turn completes. Each receives (messages).")
 
 ;;; config.el ends here

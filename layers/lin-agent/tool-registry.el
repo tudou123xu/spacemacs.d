@@ -3,6 +3,48 @@
 ;; Aligns with Claude Code's Tool.ts + tools.ts: register, schema, execute
 
 (require 'cl-lib)
+(require 'json)
+
+;; ==================== Jupyter (.ipynb) helpers (NotebookEditTool parity) ====================
+
+(defun lin-agent--notebook-cells-list (nb)
+  "Return notebook cells as a list."
+  (let ((c (alist-get 'cells nb)))
+    (cond
+     ((vectorp c) (append c nil))
+     ((listp c) c)
+     (t nil))))
+
+(defun lin-agent--notebook-set-cells (nb cells)
+  "Set NB cells to CELLS, preserving vector vs list if possible."
+  (let ((raw (alist-get 'cells nb)))
+    (setf (alist-get 'cells nb)
+          (if (vectorp raw) (vconcat cells) cells))))
+
+(defun lin-agent--notebook-cell-source-string (cell)
+  "Return source of CELL as a string."
+  (let ((s (alist-get 'source cell)))
+    (cond
+     ((stringp s) s)
+     ((listp s) (apply #'concat s))
+     ((vectorp s) (mapconcat #'identity (append s nil) ""))
+     (t ""))))
+
+(defun lin-agent--json-read-file (path)
+  "Parse JSON file PATH into an alist."
+  (with-temp-buffer
+    (insert-file-contents-literally path)
+    (if (fboundp 'json-parse-buffer)
+        (json-parse-buffer :object-type 'alist :array-type 'list)
+      (let ((json-object-type 'alist)
+            (json-array-type 'list))
+        (goto-char (point-min))
+        (json-read)))))
+
+(defun lin-agent--json-write-file (path obj)
+  "Write OBJ as JSON to PATH."
+  (with-temp-file path
+    (insert (json-encode obj))))
 
 ;; ==================== Tool Registry ====================
 
@@ -493,6 +535,294 @@ Use for parallel subtasks, research, or isolated work."
            output))))
    t)
 
+  (lin-agent-tool-register
+   "git_worktree" "List git worktrees for the current repo (Claude Code EnterWorktree/ExitWorktree parity for discovery)."
+   '(("type" . "object")
+     ("properties" . (("path" . (("type" . "string")
+                                   ("description" . "Optional repository root (default: project root)")))))
+     ("required" . []))
+   (lambda (input)
+     (let* ((root (or (alist-get 'path input)
+                      (and (fboundp 'projectile-project-root) (projectile-project-root))
+                      default-directory))
+            (cmd (format "git -C %s worktree list 2>&1" (shell-quote-argument (expand-file-name root)))))
+       (shell-command-to-string cmd)))
+   t)
+
+  (lin-agent-tool-register
+   "mcp_list_resources" "List MCP resources from one connected server or all servers (Claude Code ListMcpResourcesTool parity)."
+   '(("type" . "object")
+     ("properties" . (("server" . (("type" . "string")
+                                    ("description" . "MCP server name from lin-agent-mcp-server-configs; omit to list all servers")))))
+     ("required" . []))
+   (lambda (input)
+     (require 'mcp-client nil t)
+     (if (not (fboundp 'lin-agent-mcp-list-resources-all-formatted))
+         "mcp-client.el not loaded."
+       (let ((server (alist-get 'server input)))
+         (if (and server (not (string-empty-p server)))
+             (condition-case err
+                 (let ((res (lin-agent-mcp-list-resources server)))
+                   (if res
+                       (mapconcat (lambda (r)
+                                    (format "%s  %s"
+                                            (or (alist-get 'uri r) (alist-get 'name r) "?")
+                                            (or (alist-get 'name r) "")))
+                                  (if (vectorp res) (append res nil) res) "\n")
+                     "(no resources)"))
+               (error (format "mcp_list_resources: %s" (error-message-string err))))
+           (lin-agent-mcp-list-resources-all-formatted)))))
+   t)
+
+  (lin-agent-tool-register
+   "mcp_read_resource" "Read a resource by URI from a named MCP server (Claude Code ReadMcpResourceTool parity)."
+   '(("type" . "object")
+     ("properties" . (("server" . (("type" . "string") ("description" . "Connected MCP server name")))
+                      ("uri" . (("type" . "string") ("description" . "Resource URI from mcp_list_resources")))))
+     ("required" . ["server" "uri"]))
+   (lambda (input)
+     (require 'mcp-client nil t)
+     (if (not (fboundp 'lin-agent-mcp-read-resource-sync))
+         "mcp-client.el not loaded."
+       (let ((server (alist-get 'server input))
+             (uri (alist-get 'uri input)))
+         (lin-agent-mcp-read-resource-sync server uri))))
+   t)
+
+  (lin-agent-tool-register
+   "notebook_edit" "Edit a Jupyter notebook (.ipynb): list cells, replace, insert, or delete (NotebookEditTool parity, nbformat 4)."
+   '(("type" . "object")
+     ("properties" . (("notebook_path" . (("type" . "string") ("description" . "Absolute path to .ipynb file")))
+                      ("action" . (("type" . "string")
+                                   ("enum" . ["list" "replace" "insert" "delete"])
+                                   ("description" . "list: show cells; replace/insert/delete: need cell_index")))
+                      ("cell_index" . (("type" . "integer") ("description" . "0-based cell index (for replace/delete; for insert: insert after this index, use -1 for top)")))
+                      ("new_source" . (("type" . "string") ("description" . "New cell source (replace/insert)")))
+                      ("cell_type" . (("type" . "string")
+                                      ("enum" . ["code" "markdown"])
+                                      ("description" . "For insert only; default code")))))
+     ("required" . ["notebook_path" "action"]))
+   (lambda (input)
+     (let* ((path (expand-file-name (alist-get 'notebook_path input)))
+            (action (alist-get 'action input))
+            (idx-raw (alist-get 'cell_index input))
+            (cell-index (if idx-raw (truncate (float idx-raw)) nil))
+            (new-src (alist-get 'new_source input))
+            (ctype (or (alist-get 'cell_type input) "code")))
+       (unless (string-suffix-p ".ipynb" path)
+         (error "notebook_edit: path must be .ipynb"))
+       (unless (file-exists-p path)
+         (error "notebook_edit: file not found: %s" path))
+       (let ((nb (lin-agent--json-read-file path)))
+         (unless (alist-get 'cells nb)
+           (error "notebook_edit: invalid notebook (no cells)"))
+         (pcase action
+           ("list"
+            (let ((cells (lin-agent--notebook-cells-list nb))
+                  (i 0))
+              (mapconcat
+               (lambda (cell)
+                 (prog1
+                     (format "[%d] %s  %s"
+                             i
+                             (or (alist-get 'cell_type cell) "?")
+                             (truncate-string-to-width
+                              (replace-regexp-in-string "\n" " " (lin-agent--notebook-cell-source-string cell))
+                              72 nil nil "..."))
+                   (cl-incf i)))
+               cells "\n")))
+           ("replace"
+            (unless cell-index (error "notebook_edit: cell_index required"))
+            (unless new-src (error "notebook_edit: new_source required"))
+            (let* ((cells (lin-agent--notebook-cells-list nb))
+                   (cell (nth cell-index cells)))
+              (unless cell (error "notebook_edit: no cell at index %s" cell-index))
+              (setf (alist-get 'source cell) new-src)
+              (lin-agent--notebook-set-cells nb cells)
+              (lin-agent--json-write-file path nb)
+              (format "Replaced cell %d in %s" cell-index path)))
+           ("delete"
+            (unless cell-index (error "notebook_edit: cell_index required"))
+            (let* ((cells (lin-agent--notebook-cells-list nb))
+                   (n (length cells)))
+              (when (or (< cell-index 0) (>= cell-index n))
+                (error "notebook_edit: cell_index out of range"))
+              (let ((new (append (cl-subseq cells 0 cell-index)
+                                 (cl-subseq cells (1+ cell-index)))))
+                (lin-agent--notebook-set-cells nb new)
+                (lin-agent--json-write-file path nb)
+                (format "Deleted cell %d from %s" cell-index path))))
+           ("insert"
+            (unless new-src (error "notebook_edit: new_source required"))
+            (let* ((cells (lin-agent--notebook-cells-list nb))
+                   (pos (cond
+                         ((and cell-index (= cell-index -1)) 0)
+                         ((and cell-index (>= cell-index 0)) (1+ cell-index))
+                         (t 0)))
+                   (new-cell (if (member (downcase (format "%s" ctype)) '("markdown" "md"))
+                                 `((cell_type . "markdown") (metadata . ()) (source . ,new-src))
+                               `((cell_type . "code") (metadata . ()) (outputs . ,(vector)) (source . ,new-src))))
+                   (new (append (cl-subseq cells 0 pos)
+                                (list new-cell)
+                                (cl-subseq cells pos))))
+              (lin-agent--notebook-set-cells nb new)
+              (lin-agent--json-write-file path nb)
+              (format "Inserted %s cell at position %d in %s" ctype pos path)))
+           (_ (error "notebook_edit: unknown action %s" action)))))))
+   nil)
+
+  (lin-agent-tool-register
+   "task_create" "Create a structured task with title, description, and initial status."
+   '(("type" . "object")
+     ("properties" . (("title" . (("type" . "string") ("description" . "Task title")))
+                      ("description" . (("type" . "string") ("description" . "Detailed task description")))
+                      ("status" . (("type" . "string") ("enum" . ["pending" "in_progress"])
+                                   ("description" . "Initial status (default: pending)")))))
+     ("required" . ["title"]))
+   (lambda (input)
+     (let* ((id (format "task-%04d" (1+ (length lin-agent--task-list))))
+            (title (alist-get 'title input))
+            (desc (or (alist-get 'description input) ""))
+            (status (or (alist-get 'status input) "pending"))
+            (now (format-time-string "%Y-%m-%d %H:%M")))
+       (push (list :id id :title title :description desc
+                   :status status :created now :updated now)
+             lin-agent--task-list)
+       (format "Created: [%s] %s (%s)" id title status))))
+
+  (lin-agent-tool-register
+   "task_update" "Update a task's status or description."
+   '(("type" . "object")
+     ("properties" . (("id" . (("type" . "string") ("description" . "Task ID")))
+                      ("status" . (("type" . "string")
+                                   ("enum" . ["pending" "in_progress" "completed" "cancelled"])
+                                   ("description" . "New status")))
+                      ("description" . (("type" . "string") ("description" . "Updated description")))))
+     ("required" . ["id"]))
+   (lambda (input)
+     (let* ((id (alist-get 'id input))
+            (task (cl-find id lin-agent--task-list
+                           :key (lambda (item) (plist-get item :id)) :test #'equal)))
+       (if task
+           (progn
+             (when-let ((s (alist-get 'status input)))
+               (plist-put task :status s))
+             (when-let ((d (alist-get 'description input)))
+               (plist-put task :description d))
+             (plist-put task :updated (format-time-string "%Y-%m-%d %H:%M"))
+             (format "Updated: [%s] %s (%s)" id (plist-get task :title) (plist-get task :status)))
+         (format "Task not found: %s" id)))))
+
+  (lin-agent-tool-register
+   "task_list" "List all tasks, optionally filtered by status."
+   '(("type" . "object")
+     ("properties" . (("status" . (("type" . "string")
+                                    ("enum" . ["pending" "in_progress" "completed" "cancelled" "all"])
+                                    ("description" . "Filter by status (default: all)")))))
+     ("required" . []))
+   (lambda (input)
+     (let* ((filter-status (alist-get 'status input))
+            (tasks (if (or (null filter-status) (equal filter-status "all"))
+                       lin-agent--task-list
+                     (cl-remove-if-not
+                      (lambda (item) (equal (plist-get item :status) filter-status))
+                      lin-agent--task-list))))
+       (if tasks
+           (mapconcat
+            (lambda (item)
+              (format "[%s] %s — %s\n    %s\n    Created: %s | Updated: %s"
+                      (plist-get item :id)
+                      (plist-get item :title)
+                      (plist-get item :status)
+                      (plist-get item :description)
+                      (plist-get item :created)
+                      (plist-get item :updated)))
+            (reverse tasks) "\n\n")
+         "(no tasks)")))
+   t)
+
+  (lin-agent-tool-register
+   "task_get" "Get details of a specific task by ID."
+   '(("type" . "object")
+     ("properties" . (("id" . (("type" . "string") ("description" . "Task ID")))))
+     ("required" . ["id"]))
+   (lambda (input)
+     (let* ((id (alist-get 'id input))
+            (task (cl-find id lin-agent--task-list
+                           :key (lambda (item) (plist-get item :id)) :test #'equal)))
+       (if task
+           (format "ID: %s\nTitle: %s\nStatus: %s\nDescription: %s\nCreated: %s\nUpdated: %s"
+                   (plist-get task :id)
+                   (plist-get task :title)
+                   (plist-get task :status)
+                   (plist-get task :description)
+                   (plist-get task :created)
+                   (plist-get task :updated))
+         (format "Task not found: %s" id))))
+   t)
+
+  ;; ==================== Tool Search ====================
+
+  (lin-agent-tool-register
+   "tool_search" "Search available tools by keyword in name or description."
+   '(("type" . "object")
+     ("properties" . (("query" . (("type" . "string") ("description" . "Search keyword")))))
+     ("required" . ["query"]))
+   (lambda (input)
+     (let* ((query (downcase (alist-get 'query input)))
+            (matches nil))
+       (maphash
+        (lambda (name tool)
+          (when (or (string-match-p query (downcase name))
+                    (string-match-p query (downcase (or (plist-get tool :description) ""))))
+            (push (format "%-20s %s%s"
+                          name
+                          (plist-get tool :description)
+                          (if (plist-get tool :read-only) " [readonly]" ""))
+                  matches)))
+        lin-agent--tools)
+       (if matches
+           (mapconcat #'identity (nreverse matches) "\n")
+         (format "No tools matching '%s'" (alist-get 'query input)))))
+   t)
+
+  ;; ==================== IDE Integration ====================
+
+  (lin-agent-tool-register
+   "open_file" "Open a file in Emacs and optionally go to a line."
+   '(("type" . "object")
+     ("properties" . (("path" . (("type" . "string") ("description" . "File path")))
+                      ("line" . (("type" . "integer") ("description" . "Line number to go to (optional)")))))
+     ("required" . ["path"]))
+   (lambda (input)
+     (let ((path (expand-file-name (alist-get 'path input)))
+           (line (alist-get 'line input)))
+       (if (file-exists-p path)
+           (progn
+             (find-file-noselect path)
+             (when line
+               (with-current-buffer (find-buffer-visiting path)
+                 (goto-char (point-min))
+                 (forward-line (1- line))))
+             (format "Opened %s%s" path (if line (format " at line %d" line) "")))
+         (format "File not found: %s" path))))
+
+  (lin-agent-tool-register
+   "project_structure" "Get project directory structure (tree view, limited depth)."
+   '(("type" . "object")
+     ("properties" . (("path" . (("type" . "string") ("description" . "Root directory path")))
+                      ("depth" . (("type" . "integer") ("description" . "Max depth (default 3)")))))
+     ("required" . ["path"]))
+   (lambda (input)
+     (let* ((root (expand-file-name (alist-get 'path input)))
+            (depth (or (alist-get 'depth input) 3))
+            (cmd (format "find %s -maxdepth %d -not -path '*/\\.*' -not -path '*/node_modules/*' -not -path '*/vendor/*' | head -100 | sort"
+                         (shell-quote-argument root) depth)))
+       (if (file-directory-p root)
+           (shell-command-to-string cmd)
+         (format "Directory not found: %s" root))))
+   t)
+
 ) ;; end of lin-agent--init-builtin-tools
 
 ;; ==================== Imenu helper for LSP symbols ====================
@@ -526,6 +856,9 @@ Use for parallel subtasks, research, or isolated work."
 
 (defvar lin-agent--todo-list nil
   "In-session todo list for the agent.")
+
+(defvar lin-agent--task-list nil
+  "Structured task list: list of plists (:id :title :status :description :created :updated).")
 
 (provide 'tool-registry)
 ;;; tool-registry.el ends here
